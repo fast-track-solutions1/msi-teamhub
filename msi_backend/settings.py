@@ -1,16 +1,15 @@
 import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-DEBUG = config('DEBUG', default=True, cast=bool)
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-change-this-in-production')
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-
+# ============================================================================
+# DJANGO BASIC SETTINGS (Sans config() pour éviter problème .env)
+# ============================================================================
+DEBUG = True
+SECRET_KEY = 'django-insecure-your-secret-key-change-this-in-production'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -20,7 +19,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
@@ -28,7 +26,6 @@ INSTALLED_APPS = [
     'django_extensions',
     'api',
 ]
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -41,9 +38,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-
 ROOT_URLCONF = 'msi_backend.urls'
-
 
 TEMPLATES = [
     {
@@ -61,23 +56,29 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'msi_backend.wsgi.application'
 
-
+# ============================================================================
+# DATABASE CONFIGURATION - POSTGRESQL LOCAL (Sans config() pour UTF-8)
+# ============================================================================
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config('DB_NAME', default='msi_gestion'),
-        'USER': config('DB_USER', default='msi_user'),
-        'PASSWORD': config('DB_PASSWORD', default='Cisco123@@@'),
-        'HOST': config('DB_HOST', default='db'),
-        'PORT': config('DB_PORT', default='5432'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'msi_gestion',
+        'USER': 'msi_user',
+        'PASSWORD': 'Cisco123',
+        'HOST': 'db',
+        'PORT': '5432',
         'ATOMIC_REQUESTS': True,
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        }
     }
 }
 
-
+# ============================================================================
+# AUTH & PASSWORD VALIDATION
+# ============================================================================
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -96,31 +97,35 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+# ============================================================================
+# INTERNATIONALIZATION
+# ============================================================================
 LANGUAGE_CODE = 'fr-FR'
 TIME_ZONE = 'Europe/Paris'
 USE_I18N = True
 USE_TZ = True
 
-
+# ============================================================================
+# STATIC & MEDIA FILES
+# ============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
+# ============================================================================
+# DEFAULT AUTO FIELD & SITES
+# ============================================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-# Sites Framework
 SITE_ID = 1
 
-
+# ============================================================================
+# REST FRAMEWORK CONFIGURATION
+# ============================================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -156,7 +161,9 @@ REST_FRAMEWORK = {
     },
 }
 
-
+# ============================================================================
+# JWT CONFIGURATION
+# ============================================================================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=12),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -185,7 +192,9 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_OBTAIN_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer',
 }
 
-
+# ============================================================================
+# CORS CONFIGURATION
+# ============================================================================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -195,8 +204,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-
 CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -209,7 +218,9 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -264,14 +275,16 @@ LOGGING = {
     },
 }
 
-
+# ============================================================================
+# FILE UPLOAD SETTINGS
+# ============================================================================
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880
-
-
 ALLOWED_UPLOAD_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'jpg', 'jpeg', 'png']
 
-
+# ============================================================================
+# CACHE CONFIGURATION
+# ============================================================================
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -279,14 +292,16 @@ CACHES = {
     }
 }
 
-
+# ============================================================================
+# SESSION & SECURITY SETTINGS
+# ============================================================================
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Strict'
 SESSION_COOKIE_AGE = 86400
 
-
 SECURE_BROWSER_XSS_FILTER = True
+
 SECURE_CONTENT_SECURITY_POLICY = {
     "default-src": ("'self'",),
     "script-src": ("'self'", "'unsafe-inline'"),
@@ -294,14 +309,14 @@ SECURE_CONTENT_SECURITY_POLICY = {
     "img-src": ("'self'", "data:", "https:"),
 }
 
-
 if not DEBUG:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
-
-# ===== DJANGO ADMIN CUSTOMIZATION =====
+# ============================================================================
+# DJANGO ADMIN CUSTOMIZATION
+# ============================================================================
 ADMIN_SITE_HEADER = "MSI TeamHub"
 ADMIN_SITE_TITLE = "MSI TeamHub Admin"
 ADMIN_INDEX_TITLE = "Bienvenue dans MSI TeamHub"

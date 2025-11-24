@@ -35,7 +35,6 @@ class Departement(models.Model):
     nom = models.CharField(max_length=100)
     region = models.CharField(max_length=100, null=True, blank=True)
     societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='departements')
-    nombre_circuits = models.IntegerField(default=1, validators=[MinValueValidator(0)])
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
 
@@ -126,14 +125,14 @@ class OutilTravail(models.Model):
 class CreneauTravail(models.Model):
     """Créneaux horaires disponibles"""
     nom = models.CharField(max_length=100)
-    societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='creneaux_travail', default=1)
+    societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='creneaux_travail')
     heure_debut = models.TimeField()
     heure_fin = models.TimeField()
     heure_pause_debut = models.TimeField(null=True, blank=True)
     heure_pause_fin = models.TimeField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     actif = models.BooleanField(default=True)
-    date_creation = models.DateTimeField(auto_now_add=True, null=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['societe', 'heure_debut']
@@ -348,11 +347,11 @@ class TypeApplicationAcces(models.Model):
 
 class AccesApplication(models.Model):
     """Accès applicatif d'un salarié"""
-    salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='acces_applicatif', default=1)
-    type_application = models.ForeignKey(TypeApplicationAcces, on_delete=models.CASCADE, default=1)
-    application = models.CharField(max_length=255, default='APP')
-    identifiant = models.CharField(max_length=255, default='APP_ID')
-    mot_de_passe = models.CharField(max_length=255, default='APP_PWD')
+    salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='acces_applicatif')
+    type_application = models.ForeignKey(TypeApplicationAcces, on_delete=models.CASCADE)
+    application = models.CharField(max_length=255)
+    identifiant = models.CharField(max_length=255, default='APP_ID')  # ✅ AJOUT DEFAULT
+    mot_de_passe = models.CharField(max_length=255, default='APP_PWD')  # ✅ AJOUT DEFAULT
     url = models.URLField(null=True, blank=True)
     date_debut = models.DateField(auto_now_add=True)
     date_fin = models.DateField(null=True, blank=True)
@@ -368,8 +367,8 @@ class AccesApplication(models.Model):
 
 class AccesSalarie(models.Model):
     """Accès physiques du salarié"""
-    salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='acces_locaux', default=1)
-    type_acces = models.ForeignKey(TypeAcces, on_delete=models.CASCADE, default=1)
+    salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='acces_locaux')
+    type_acces = models.ForeignKey(TypeAcces, on_delete=models.CASCADE)
     description = models.CharField(max_length=255, null=True, blank=True)
     date_debut = models.DateField(auto_now_add=True)
     date_fin = models.DateField(null=True, blank=True)
@@ -405,10 +404,10 @@ class DemandeConge(models.Model):
     ]
 
     salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='demandes_conge')
-    type_conge = models.CharField(max_length=50, choices=TYPE_CONGE, default='normal')
+    type_conge = models.CharField(max_length=50, choices=TYPE_CONGE)
     date_debut = models.DateField()
     date_fin = models.DateField()
-    nombre_jours = models.DecimalField(max_digits=5, decimal_places=2, default=1)
+    nombre_jours = models.DecimalField(max_digits=5, decimal_places=2)
     motif = models.TextField(null=True, blank=True)
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES, default='brouillon')
     valide_par_direct = models.BooleanField(default=False)
@@ -420,7 +419,7 @@ class DemandeConge(models.Model):
     rejete = models.BooleanField(default=False)
     date_rejet = models.DateTimeField(null=True, blank=True)
     motif_rejet = models.TextField(null=True, blank=True)
-    date_creation = models.DateTimeField(auto_now_add=True, null=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -456,7 +455,7 @@ class DemandeAcompte(models.Model):
 
     salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='demandes_acompte')
     montant = models.DecimalField(max_digits=10, decimal_places=2)
-    motif = models.TextField(default='Demande d\'acompte')
+    motif = models.TextField()
     date_demande = models.DateField(auto_now_add=True)
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES, default='brouillon')
     valide_par_direct = models.BooleanField(default=False)
@@ -487,7 +486,7 @@ class DemandeSortie(models.Model):
     date_sortie = models.DateField()
     heure_debut = models.TimeField()
     heure_fin = models.TimeField()
-    motif = models.CharField(max_length=255, default='Sortie exceptionnelle')
+    motif = models.CharField(max_length=255)
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES, default='brouillon')
     valide_par_direct = models.BooleanField(default=False)
     date_validation_direct = models.DateTimeField(null=True, blank=True)
@@ -516,8 +515,8 @@ class TravauxExceptionnels(models.Model):
     date_travail = models.DateField()
     heure_debut = models.TimeField()
     heure_fin = models.TimeField()
-    nombre_heures = models.DecimalField(max_digits=5, decimal_places=2, default=1)
-    description_travail = models.TextField(default='Travaux exceptionnels')
+    nombre_heures = models.DecimalField(max_digits=5, decimal_places=2)
+    description_travail = models.TextField()
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES, default='brouillon')
     valide_par_direct = models.BooleanField(default=False)
     date_validation_direct = models.DateTimeField(null=True, blank=True)
@@ -548,8 +547,8 @@ class DocumentSalarie(models.Model):
     ]
 
     salarie = models.ForeignKey(Salarie, on_delete=models.CASCADE, related_name='documents')
-    type_document = models.CharField(max_length=50, choices=TYPE_DOCUMENT, default='autre')
-    titre = models.CharField(max_length=255, default='Document')
+    type_document = models.CharField(max_length=50, choices=TYPE_DOCUMENT)
+    titre = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     fichier = models.FileField(upload_to='documents/%Y/%m/%d/')
     date_document = models.DateField(null=True, blank=True)
@@ -583,8 +582,8 @@ class FichePoste(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='fiches_poste')
     grade = models.ForeignKey(Grade, on_delete=models.CASCADE)
     responsable_service = models.ForeignKey(Salarie, on_delete=models.SET_NULL, null=True, blank=True)
-    description = models.TextField(default='Description du poste')
-    taches = models.TextField(default='Tâches principales')
+    description = models.TextField()
+    taches = models.TextField()
     competences_requises = models.TextField(null=True, blank=True)
     moyens_correction = models.TextField(null=True, blank=True)
     problemes = models.TextField(null=True, blank=True)
@@ -613,10 +612,10 @@ class AmeliorationProposee(models.Model):
     ]
 
     fiche_poste = models.ForeignKey(FichePoste, on_delete=models.CASCADE, related_name='ameliorations')
-    salarie_proposant = models.ForeignKey(Salarie, on_delete=models.CASCADE, default=1)
-    titre = models.CharField(max_length=255, default='Amélioration')
-    description = models.TextField(default='Description de l\'amélioration')
-    raison = models.TextField(default='Non spécifiée')
+    salarie_proposant = models.ForeignKey(Salarie, on_delete=models.CASCADE)
+    titre = models.CharField(max_length=255)
+    description = models.TextField()
+    raison = models.TextField(default='Non spécifiée')  # ✅ AJOUT DEFAULT
     statut = models.CharField(max_length=50, choices=STATUT_CHOICES, default='proposal')
     date_proposition = models.DateTimeField(auto_now_add=True)
     date_examen = models.DateTimeField(null=True, blank=True)
