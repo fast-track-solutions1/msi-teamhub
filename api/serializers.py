@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from rest_framework.relations import PrimaryKeyRelatedField
 from .models import (
 Societe, Service, Grade, Departement, TypeAcces, OutilTravail, Circuit,
 Equipement, Salarie, AccesSalarie, HistoriqueSalarie, FichePoste,
@@ -32,10 +32,16 @@ class CircuitSerializer(serializers.ModelSerializer):
 
 class DepartementSerializer(serializers.ModelSerializer):
     circuits = CircuitSerializer(many=True, read_only=True)
+    label_complet = serializers.SerializerMethodField()
+
     class Meta:
         model = Departement
-        fields = ('id', 'numero', 'nom', 'region', 'societe', 'circuits', 'actif', 'date_creation')
+        fields = ('id', 'numero', 'nom', 'region', 'chef_lieu', 'societe', 'circuits', 'actif', 'date_creation', 'label_complet')
         read_only_fields = ('date_creation',)
+
+    def get_label_complet(self, obj):
+        """Retourne: CODE - NOM - X circuits"""
+        return f"{obj.numero} - {obj.nom} - {obj.nombre_circuits} circuits"
 
 class ServiceSerializer(serializers.ModelSerializer):
     responsable_info = serializers.SerializerMethodField(read_only=True)
@@ -88,6 +94,65 @@ class TypeApplicationAccesSerializer(serializers.ModelSerializer):
 # ============================================================================
 # SERIALIZERS SALARIÉ
 # ============================================================================
+
+
+class SalarieSerializer(serializers.ModelSerializer):
+    """Serializer pour Salarie avec support multiple départements (M2M)"""
+    departements = PrimaryKeyRelatedField(
+        queryset=Departement.objects.all(),
+        many=True,
+        required=False
+    )
+    
+    class Meta:
+        model = Salarie
+        fields = [
+            'id',
+            'user',
+            'nom',
+            'prenom',
+            'matricule',
+            'genre',
+            'date_naissance',
+            'telephone',
+            'mail_professionnel',
+            'telephone_professionnel',
+            'extension_3cx',
+            'societe',
+            'service',
+            'grade',
+            'responsable_direct',
+            'poste',
+            'departements',
+            'circuit',
+            'date_embauche',
+            'statut',
+            'date_sortie',
+            'en_poste',
+            'creneau_travail',
+            'date_creation',
+            'date_modification'
+        ]
+        read_only_fields = ('date_creation', 'date_modification')
+
+    def create(self, validated_data):
+        departements_data = validated_data.pop('departements', [])
+        salarie = Salarie.objects.create(**validated_data)
+        salarie.departements.set(departements_data)
+        return salarie
+
+    def update(self, instance, validated_data):
+        departements_data = validated_data.pop('departements', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        if departements_data is not None:
+            instance.departements.set(departements_data)
+        
+        return instance
+
 
 class EquipementInstanceSerializer(serializers.ModelSerializer):
     equipement_nom = serializers.CharField(source='equipement.nom', read_only=True)

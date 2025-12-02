@@ -1,7 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-# Importation de tous les ViewSets
+# ============================================================================
+# IMPORTATION DE TOUS LES VIEWSETS
+# ============================================================================
+
 from .views import (
     SocieteViewSet, DepartementViewSet, CircuitViewSet, ServiceViewSet,
     GradeViewSet, TypeAccesViewSet, OutilTravailViewSet, CreneauTravailViewSet,
@@ -14,21 +17,21 @@ from .views import (
     FichePosteViewSet, AmeliorationProposeeViewSet,
     FicheParametresUserViewSet, RoleViewSet,
     ImportLogViewSet,
-    # ✅ IMPORT DES FONCTIONS D'IMPORT
-    import_list_apis,
-    import_get_structure,
-    import_download_template,
-    import_upload_file,
-    import_get_history,
-    import_get_details,
 )
 
-# Créer le routeur
+# ✅ IMPORT DU VIEWSET D'IMPORT (NOUVEAU - MODERNE)
+from .import_views import ImportViewSet
+
+# ============================================================================
+# CRÉER LE ROUTEUR
+# ============================================================================
+
 router = DefaultRouter()
 
 # ============================================================================
 # ROUTES PARAMÉTRAGES
 # ============================================================================
+
 router.register(r'societes', SocieteViewSet, basename='societe')
 router.register(r'departements', DepartementViewSet, basename='departement')
 router.register(r'circuits', CircuitViewSet, basename='circuit')
@@ -43,6 +46,7 @@ router.register(r'types-application-acces', TypeApplicationAccesViewSet, basenam
 # ============================================================================
 # ROUTES SALARIÉS
 # ============================================================================
+
 router.register(r'salaries', SalarieViewSet, basename='salarie')
 router.register(r'equipement-instances', EquipementInstanceViewSet, basename='equipement-instance')
 router.register(r'acces-application', AccesApplicationViewSet, basename='acces-application')
@@ -53,6 +57,7 @@ router.register(r'historique-salarie', HistoriqueSalarieViewSet, basename='histo
 # ============================================================================
 # ROUTES DEMANDES
 # ============================================================================
+
 router.register(r'demandes-conge', DemandeCongeViewSet, basename='demande-conge')
 router.register(r'solde-conge', SoldeCongeViewSet, basename='solde-conge')
 router.register(r'demandes-acompte', DemandeAcompteViewSet, basename='demande-acompte')
@@ -62,47 +67,35 @@ router.register(r'travaux-exceptionnels', TravauxExceptionnelsViewSet, basename=
 # ============================================================================
 # ROUTES DOCUMENTS
 # ============================================================================
+
 router.register(r'documents-salarie', DocumentSalarieViewSet, basename='document-salarie')
 
 # ============================================================================
 # ROUTES FICHES DE POSTE
 # ============================================================================
+
 router.register(r'fiches-poste', FichePosteViewSet, basename='fiche-poste')
 router.register(r'ameliorations-proposees', AmeliorationProposeeViewSet, basename='amelioration-proposee')
 
 # ============================================================================
 # ROUTES PARAMÉTRAGE USER
 # ============================================================================
+
 router.register(r'fiche-parametres-user', FicheParametresUserViewSet, basename='fiche-parametres-user')
 router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'import-logs', ImportLogViewSet, basename='import-logs')
 
 # ============================================================================
+# ✅ ROUTE IMPORT - ENREGISTREMENT DU VIEWSET MODERNE
+# ============================================================================
+
+router.register(r'import', ImportViewSet, basename='import')
+
+# ============================================================================
 # URL PATTERNS
 # ============================================================================
+
 urlpatterns = [
     # Routes du router (inclut toutes les routes enregistrées)
     path('', include(router.urls)),
-
-    # ============================================================================
-    # ✅ ENDPOINTS D'IMPORT EN MASSE - ROUTES DIRECTES (CORRIGÉES)
-    # ============================================================================
-    
-    # Liste tous les modèles
-    path('import/list/', import_list_apis, name='import-list-apis'),
-    
-    # Récupère structure d'un modèle avec l'api_name en URL
-    path('import/structure/<str:api_name>/', import_get_structure, name='import-get-structure'),
-    
-    # Télécharge template Excel avec l'api_name en URL
-    path('import/template/<str:api_name>/', import_download_template, name='import-download-template'),
-    
-    # Upload et importe fichier avec l'api_name en URL
-    path('import/upload/<str:api_name>/', import_upload_file, name='import-upload-file'),
-    
-    # Historique des imports
-    path('import/history/', import_get_history, name='import-get-history'),
-    
-    # Détails d'un import avec log_id en URL
-    path('import/details/<int:log_id>/', import_get_details, name='import-get-details'),
 ]

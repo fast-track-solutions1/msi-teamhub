@@ -1,403 +1,64 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
-
-{% block title %}Importation en Masse - Django Admin{% endblock %}
-
-{% block extrahead %}
-<style>
-    .import-container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 30px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .import-container h1 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 30px;
-        font-size: 28px;
-    }
-
-    .form-group {
-        margin-bottom: 25px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 10px;
-        font-weight: 500;
-        color: #333;
-        font-size: 14px;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 12px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background-color: #f9f9f9;
-        color: #333;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-    }
-
-    .form-control:hover {
-        border-color: #217346;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #217346;
-        box-shadow: 0 0 0 3px rgba(33, 128, 141, 0.1);
-    }
-
-    .help-text {
-        display: block;
-        margin-top: 5px;
-        font-size: 12px;
-        color: #666;
-    }
-
-    .form-check-input {
-        margin-right: 10px;
-        cursor: pointer;
-    }
-
-    .form-check-label {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-    }
-
-    .errorlist {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 15px;
-    }
-
-    .errorlist li {
-        background: #fee;
-        border-left: 4px solid #c00;
-        color: #c00;
-        padding: 10px;
-        margin-bottom: 5px;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-
-    .btn {
-        padding: 14px 20px;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-bottom: 15px;
-        margin-right: 10px;
-    }
-
-    .btn-primary {
-        background: #217346;
-        color: white;
-        width: 100%;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: #1a5a38;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-secondary {
-        background: #6c757d;
-        color: white;
-        width: auto;
-        display: inline-block;
-    }
-
-    .btn-secondary:hover:not(:disabled) {
-        background: #5a6268;
-    }
-
-    .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .button-group {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-    }
-
-    .result-box {
-        background: #f0f9f7;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 25px;
-    }
-
-    .result-box.success {
-        border-color: #28a745;
-        background: #f0fff4;
-    }
-
-    .result-box.partial {
-        border-color: #ffc107;
-        background: #fffbf0;
-    }
-
-    .result-box h3 {
-        margin-top: 0;
-        margin-bottom: 15px;
-        color: #333;
-    }
-
-    .result-summary {
-        background: white;
-        padding: 15px;
-        border-radius: 6px;
-        margin-bottom: 15px;
-        border: 1px solid #eee;
-    }
-
-    .result-summary p {
-        margin: 8px 0;
-        font-size: 14px;
-        color: #333;
-    }
-
-    .result-summary strong {
-        color: #217346;
-    }
-
-    .errors-list {
-        max-height: 300px;
-        overflow-y: auto;
-        margin-top: 15px;
-    }
-
-    .errors-list h4 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        color: #c00;
-    }
-
-    .errors-list ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .errors-list li {
-        background: #fee;
-        padding: 10px;
-        margin-bottom: 8px;
-        border-radius: 6px;
-        font-size: 12px;
-        color: #333;
-        border-left: 3px solid #c00;
-    }
-
-    .errors-list li strong {
-        color: #c00;
-    }
-
-    .model-selected {
-        background: #e8f5e9;
-        padding: 15px;
-        border-left: 4px solid #217346;
-        border-radius: 6px;
-        margin-bottom: 20px;
-        display: none;
-    }
-
-    .model-selected.show {
-        display: block;
-    }
-
-    .model-selected p {
-        margin: 0;
-        color: #217346;
-        font-weight: 500;
-    }
-
-    @media (max-width: 600px) {
-        .import-container {
-            padding: 15px;
-        }
-
-        .import-container h1 {
-            font-size: 22px;
-        }
-
-        .btn {
-            font-size: 13px;
-            padding: 12px 15px;
-        }
-
-        .button-group {
-            flex-direction: column;
-        }
-
-        .btn-secondary {
-            width: 100%;
-        }
-    }
-</style>
-{% endblock %}
-
+{% block title %}Importation - MSI TeamHub{% endblock %}
+{% block extrastyle %}<style>
+*{margin:0;padding:0;box-sizing:border-box}body{background:#f5f7fa}.import-container{max-width:1100px;margin:20px auto;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08)}.import-header{background:linear-gradient(135deg,#2d5266 0%,#417690 100%);color:white;padding:40px;border-bottom:4px solid #1a3a47}.import-header h1{margin:0;font-size:32px;font-weight:700;color:#fff}.import-header-subtitle{font-size:13px;color:#e8f0f5;margin-top:4px}.import-content{padding:40px}.form-section{background:#f9fafc;padding:28px;border-radius:10px;margin-bottom:28px;border:2px solid #e0e6f0;border-left:5px solid #417690}.form-section h3{font-size:18px;font-weight:700;color:#2d5266;margin-bottom:20px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:14px}.form-group select,.form-group input[type="file"]{width:100%;padding:14px 16px;border:2px solid #d0d8e0;border-radius:8px;font-size:14px;background:white;color:#333}.form-group select:focus,.form-group input[type="file"]:focus{outline:0;border-color:#417690;background:#fafbfc;box-shadow:0 0 0 4px rgba(65,118,144,.1)}.selected-model{background:linear-gradient(135deg,#e8f2f7 0%,#f0f7fc 100%);border:2px solid #417690;padding:16px;border-radius:8px;margin-top:15px;display:none}.selected-model.visible{display:block}.model-badge{display:inline-block;background:#417690;color:white;padding:8px 16px;border-radius:6px;font-weight:600;font-size:14px}.download-section{margin-top:20px;padding:16px;background:linear-gradient(135deg,#fff9e6 0%,#fffbf0 100%);border-left:4px solid #ffc107;border-radius:6px;display:none}.download-section.visible{display:block}.download-link{color:#417690;font-weight:600;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.download-link:hover{color:#2d5266;text-decoration:underline}#model-structure{margin-top:20px;padding:20px;background:linear-gradient(135deg,#f0f4f8 0%,#e8ecf1 100%);border-radius:8px;border:2px dashed #417690;display:none}#model-structure.visible{display:block}#model-structure h4{font-size:16px;font-weight:600;color:#2d5266;margin-bottom:15px}.table-simple{width:100%;border-collapse:collapse;font-size:14px;margin-top:15px;border-radius:6px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08)}.table-simple th{background:linear-gradient(135deg,#2d5266 0%,#417690 100%);color:white;padding:14px;text-align:left;font-weight:600;font-size:13px}.table-simple td{padding:12px 14px;border-bottom:1px solid #e0e0e0;background:white;color:#333}.table-simple tbody tr:hover{background:#f9fafc}.button-group{display:flex;gap:12px;margin-top:28px}.btn{padding:14px 28px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .3s ease}.btn-primary{background:linear-gradient(135deg,#417690 0%,#2d5266 100%);color:white;box-shadow:0 4px 12px rgba(65,118,144,.3)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(65,118,144,.4)}.btn-secondary{background:#6c757d;color:white}.btn-secondary:hover{background:#5a6268;transform:translateY(-2px)}.results-section{background:white;padding:28px;border-radius:10px;margin-top:28px;border:2px solid #e0e6f0;border-left:5px solid #417690;display:none}.results-section.visible{display:block}.results-section.success{border-left-color:#28a745;background:#f8fdf9}.results-section.warning{border-left-color:#ffc107;background:#fffbf0}.result-stat{padding:16px;margin-bottom:12px;border-radius:8px;font-weight:500;font-size:15px}.result-stat.success{background:#d4edda;color:#155724;border-left:4px solid #28a745}.result-stat.warning{background:#fff3cd;color:#856404}.result-stat.error{background:#f8d7da;color:#721c24}.info-box{background:linear-gradient(135deg,#e8f5f9 0%,#f0fbfc 100%);border-left:4px solid #0c5460;border:2px solid #b3e5fc;padding:24px;border-radius:8px;color:#0c5460}.info-box h4{color:#0c5460;margin-top:0;margin-bottom:16px;font-size:16px;font-weight:700}.info-box ol{margin-left:20px;line-height:1.8}.history-section{background:linear-gradient(135deg,#f0f4f8 0%,#e8ecf1 100%);border:2px solid #d0d8e0;padding:28px;border-radius:10px;margin-top:28px}.history-section h3{color:#2d5266;margin-bottom:20px;font-size:20px;font-weight:700}.history-link{margin-top:16px;font-size:14px}.history-link a{color:#417690;text-decoration:none;font-weight:600}
+</style>{% endblock %}
 {% block content %}
 <div class="import-container">
-    <h1>📥 Importation en Masse</h1>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    <form method="post" enctype="multipart/form-data" novalidate id="importForm">
-        {% csrf_token %}
-
-        <!-- Erreurs du formulaire -->
-        {% if form.non_field_errors %}
-            <div class="errorlist">
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        <!-- Sélection du modèle -->
-        <div class="form-group">
-            {{ form.api_name.label_tag }}
-            {{ form.api_name }}
-            {% if form.api_name.errors %}
-                <div class="errorlist">
-                    {% for error in form.api_name.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            <small class="help-text">{{ form.api_name.help_text }}</small>
-        </div>
-
-        <!-- Modèle sélectionné -->
-        <div class="model-selected" id="modelSelected">
-            <p>✅ Modèle sélectionné: <strong id="selectedModelName"></strong></p>
-        </div>
-
-        <!-- Bouton télécharger template -->
-        <div class="button-group">
-            <button type="button" class="btn btn-secondary" id="downloadBtn" disabled>
-                📥 Télécharger le template
-            </button>
-        </div>
-
-        <!-- Upload du fichier -->
-        <div class="form-group">
-            {{ form.file.label_tag }}
-            {{ form.file }}
-            {% if form.file.errors %}
-                <div class="errorlist">
-                    {% for error in form.file.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            <small class="help-text">{{ form.file.help_text }}</small>
-        </div>
-
-        <!-- Option ignorer les erreurs -->
-        <div class="form-group">
-            <label class="form-check-label">
-                {{ form.skip_errors }}
-                {{ form.skip_errors.label }}
-            </label>
-            <small class="help-text">{{ form.skip_errors.help_text }}</small>
-        </div>
-
-        <!-- Bouton importer -->
-        <button type="submit" class="btn btn-primary">🚀 Importer</button>
-    </form>
-
-    <!-- Résultats -->
-    {% if result %}
-        <div class="result-box {% if result.statut == 'succes' %}success{% elif result.statut == 'partiel' %}partial{% endif %}">
-            <h3>📊 Résultats de l'import</h3>
-
-            <div class="result-summary">
-                <p><strong>Total lignes:</strong> {{ result.total_lignes }}</p>
-                <p><strong>✅ Succès:</strong> {{ result.lignes_succes }}</p>
-                <p><strong>❌ Erreurs:</strong> {{ result.lignes_erreur }}</p>
-                <p><strong>Taux:</strong> {{ result.taux_succes }}</p>
-                <p><strong>Statut:</strong> 
-                    {% if result.statut == 'succes' %}
-                        <span style="color: #28a745;">✅ Succès</span>
-                    {% elif result.statut == 'partiel' %}
-                        <span style="color: #ffc107;">⚠️ Partiel</span>
-                    {% else %}
-                        <span style="color: #c00;">❌ Erreur</span>
-                    {% endif %}
-                </p>
-            </div>
-
-            {% if result.erreurs %}
-                <div class="errors-list">
-                    <h4>Erreurs détaillées:</h4>
-                    <ul>
-                        {% for error in result.erreurs|slice:":10" %}
-                            <li>
-                                <strong>Ligne {{ error.ligne }}:</strong>
-                                {% for msg in error.erreurs %}
-                                    {{ msg }}<br>
-                                {% endfor %}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                    {% if result.erreurs|length > 10 %}
-                        <p style="text-align: center; color: #666;">
-                            ... et {{ result.erreurs|length|add:"-10" }} autres erreurs
-                        </p>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </div>
-    {% endif %}
+<div class="import-header"><div><h1>📥 Importation en Masse</h1><div class="import-header-subtitle">Gérez vos données en masse facilement</div></div></div>
+<div class="import-content">
+<form method="post" enctype="multipart/form-data" id="import-form">{% csrf_token %}
+<div class="form-section"><h3>📋 Étape 1 : Sélectionnez le type</h3>
+<div class="form-group"><label for="model-select">Modèle *</label>
+<select name="model" id="model-select" required onchange="updateTemplate()">
+<option value="">-- Sélectionnez --</option>
+{% for model in models %}<option value="{{ model.key }}">{{ model.name }}</option>{% endfor %}
+</select></div>
+<div class="selected-model" id="selected-model"><strong>✅ Sélectionné :</strong> <span class="model-badge" id="model-badge"></span></div>
+<div class="download-section" id="download-section"><a href="#" class="download-link" id="download-link" onclick="return downloadTemplate()">⬇️ Télécharger template</a></div>
+<div id="model-structure"><h4>📊 Champs</h4><table class="table-simple"><thead><tr><th>Champ</th><th>Type</th><th>Obligatoire</th><th>Clé</th></tr></thead><tbody id="model-structure-body"><tr><td colspan="4" style="text-align:center;padding:20px">Chargement...</td></tr></tbody></table></div>
 </div>
-
+<div class="form-section"><h3>📄 Étape 2 : Fichier Excel</h3>
+<div class="form-group"><label for="file-input">Fichier (.xlsx,.xls) *</label>
+<input type="file" name="file" id="file-input" accept=".xlsx,.xls" required></div>
+</div>
+<div class="form-section"><div class="button-group">
+<button type="submit" class="btn btn-primary">✅ Lancer l'import</button>
+<button type="reset" class="btn btn-secondary">🔄 Réinitialiser</button>
+</div></div>
+</form>
+{% if result %}
+<div class="form-section results-section visible {% if result.errors %}warning{% endif %}">
+<h3>✅ Résultats</h3>
+<div class="result-stat success">✅ Insérées: {{ result.inserted }}</div>
+<div class="result-stat success">🔄 Mises à jour: {{ result.updated }}</div>
+{% if result.errors %}
+<div class="result-stat error">❌ Erreurs: {{ result.errors|length }}</div>
+<details><summary style="cursor:pointer;color:#dc3545;font-weight:600;padding:8px;background:#f8d7da;border-radius:3px">Détails ({{ result.errors|length }})</summary>
+<div style="max-height:350px;overflow-y:auto;background:#f8f9fa;border:2px solid #dee2e6;border-radius:6px;padding:15px;margin-top:15px">
+{% for error in result.errors %}<div style="padding:10px;margin-bottom:10px;background:#f8d7da;border-left:4px solid #dc3545;color:#721c24;border-radius:4px"><strong>Ligne {{ error.row }}:</strong> {{ error.error }}</div>{% endfor %}
+</div></details>
+{% endif %}
+</div>
+{% endif %}
+{% if not result %}
+<div class="form-section info-box">
+<h4>ℹ️ Comment utiliser :</h4>
+<ol><li>Sélectionnez le type de données</li><li>Téléchargez le template Excel</li><li>Remplissez avec vos données</li><li>Uploadez et lancez l'import</li><li>Consultez les résultats</li></ol>
+</div>
+{% endif %}
+<div class="history-section">
+<h3>📊 Derniers imports</h3>
+<table class="table-simple"><thead><tr><th>Date</th><th>Modèle</th><th>Statut</th><th>Succès</th><th>Erreurs</th><th>Par</th></tr></thead><tbody id="history-body"><tr><td colspan="6" style="text-align:center;padding:20px">Chargement...</td></tr></tbody></table>
+<div class="history-link">🔎 <a href="{% url 'admin:api_importlog_changelist' %}">Voir tout l'historique</a></div>
+</div>
+</div>
+</div>
 <script>
-    document.getElementById('id_api_name').addEventListener('change', function() {
-        const selectedValue = this.value;
-        const selectedText = this.options[this.selectedIndex].text;
-        const modelSelected = document.getElementById('modelSelected');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const selectedModelName = document.getElementById('selectedModelName');
-
-        if (selectedValue) {
-            modelSelected.classList.add('show');
-            selectedModelName.textContent = selectedText;
-            downloadBtn.disabled = false;
-        } else {
-            modelSelected.classList.remove('show');
-            downloadBtn.disabled = true;
-        }
-    });
-
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-        const apiName = document.getElementById('id_api_name').value;
-        if (apiName) {
-            window.location.href = `/admin/import/download/?api_name=${apiName}`;
-        }
-    });
+function updateTemplate(){const m=document.getElementById('model-select').value;const sel=document.getElementById('selected-model');const dl=document.getElementById('download-section');const st=document.getElementById('model-structure');if(!m){sel.classList.remove('visible');dl.classList.remove('visible');st.classList.remove('visible');return}document.getElementById('model-badge').textContent=document.querySelector('#model-select option:checked').text;sel.classList.add('visible');dl.classList.add('visible');fetch('/admin/import/api/structure/?model='+m).then(r=>r.json()).then(d=>{if(!d.structure||!d.structure.fields)return;const t=d.structure.fields.map(f=>`<tr><td>${f.name}</td><td>${f.type}</td><td>${f.required?'Oui':'Non'}</td><td>${f.name===d.structure.unique_field?'Oui':''}</td></tr>`).join('');document.getElementById('model-structure-body').innerHTML=t;st.classList.add('visible')}).catch(()=>st.classList.remove('visible'))}
+function downloadTemplate(){const m=document.getElementById('model-select').value;if(!m){alert('Sélectionnez un modèle');return false}window.location.href='{% url "admin_download_template" %}?model='+m;return false}
+function loadHistory(){fetch('/api/import/history/').then(r=>r.json()).then(d=>{const tb=document.getElementById('history-body');if(!d.logs||!d.logs.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center">Aucun import</td></tr>';return}tb.innerHTML=d.logs.slice(0,10).map(l=>`<tr><td>${l.date_creation}</td><td>${l.api_name}</td><td>${l.statut}</td><td>${l.lignes_succes}</td><td>${l.lignes_erreur}</td><td>${l.cree_par||''}</td></tr>`).join('')}).catch(()=>document.getElementById('history-body').innerHTML='<tr><td colspan="6" style="color:#c00">Erreur</td></tr>')}
+document.addEventListener('DOMContentLoaded',loadHistory);
 </script>
 {% endblock %}

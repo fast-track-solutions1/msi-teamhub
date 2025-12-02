@@ -15,27 +15,23 @@ from .models import (
 # ============================================================================
 
 IMPORT_CONFIG = OrderedDict({
-    "departement": {
-        "label": "Département",
-        "model": Departement,
-        "fields": [
-            "numero", "nom", "region", "societe", 
-            "nombre_circuits", "actif",
-        ],
-        "required": ["numero", "nom", "societe"],
-        "field_types": {
-            "numero": "string",
-            "nom": "string",
-            "region": "string",
-            "nombre_circuits": "integer",
-            "actif": "boolean",
-        },
-        "fk_fields": {
-            "societe": Societe,
-        },
-        "fk_lookup": {
-            "societe": "nom",
-        },
+"departement": {
+    "label": "Département",
+    "model": Departement,
+    "fields": [
+        "numero", "nom", "region", "chef_lieu", "societe",
+        "nombre_circuits", "actif",
+    ],
+    "required": ["numero", "nom", "societe"],
+    "field_types": {
+        "numero": "string",
+        "nom": "string",
+        "region": "string",
+        "chef_lieu": "string",
+        "nombre_circuits": "integer",
+        "actif": "boolean",
+    },
+
     },
     
     "circuit": {

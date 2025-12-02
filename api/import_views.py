@@ -1,15 +1,12 @@
-# api/import_views.py - VIEWSETS D'IMPORTATION
+# api/import_views.py - VIEWSETS D'IMPORTATION - ✅ FINAL COMPLET
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
-from django.http import FileResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.views import APIView
+from django.http import HttpResponse
 import logging
-import json
 
 from .import_utils import GenericImporter, get_importable_models
 from .models import ImportLog
@@ -17,10 +14,8 @@ from .serializers import ImportLogSerializer
 
 logger = logging.getLogger(__name__)
 
-
 class ImportViewSet(viewsets.ViewSet):
-    """ViewSet pour gérer l'importation générique de modèles"""
-    
+    """ViewSet pour gérer l'importation générique de modèles via API moderne"""
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
@@ -28,13 +23,13 @@ class ImportViewSet(viewsets.ViewSet):
     def models(self, request):
         """
         GET /api/import/models/
-        Liste tous les modèles importables avec dropdown
+        Liste tous les modèles importables avec leur nom
         """
         try:
-            models = get_importable_models()
+            models_dict = get_importable_models()
             return Response({
                 'success': True,
-                'models': [{'key': k, 'name': v['name']} for k, v in models.items()]
+                'models': [{'key': k, 'name': v['name']} for k, v in models_dict.items()]
             })
         except Exception as e:
             logger.error(f"Erreur lors de la récupération des modèles: {str(e)}")
@@ -47,7 +42,7 @@ class ImportViewSet(viewsets.ViewSet):
     def structure(self, request):
         """
         GET /api/import/structure/?model=salarie
-        Récupère la structure d'un modèle (champs, types, etc.)
+        Récupère la structure d'un modèle (champs, types, obligatoires, etc.)
         """
         try:
             model_name = request.query_params.get('model')
@@ -56,12 +51,12 @@ class ImportViewSet(viewsets.ViewSet):
                     'success': False,
                     'error': 'Paramètre "model" requis'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+            
             importer = GenericImporter(model_name)
             structure = importer.get_model_structure()
-            
             return Response({
                 'success': True,
+                'model': model_name,
                 'structure': structure
             })
         except ValueError as e:
@@ -81,6 +76,7 @@ class ImportViewSet(viewsets.ViewSet):
         """
         GET /api/import/template/?model=salarie
         Télécharge le fichier Excel template pour un modèle
+        Inclut: en-tête formaté, instructions, liste des valeurs FK
         """
         try:
             model_name = request.query_params.get('model')
@@ -89,17 +85,15 @@ class ImportViewSet(viewsets.ViewSet):
                     'success': False,
                     'error': 'Paramètre "model" requis'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+            
             importer = GenericImporter(model_name)
             template_bytes = importer.generate_template()
-
             response = HttpResponse(
                 template_bytes,
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
             response['Content-Disposition'] = f'attachment; filename="{model_name}_template.xlsx"'
             return response
-
         except ValueError as e:
             return Response({
                 'success': False,
@@ -119,25 +113,24 @@ class ImportViewSet(viewsets.ViewSet):
         Charge et importe un fichier Excel
         
         Body: FormData avec:
-        - model: nom du modèle (ex: 'salarie')
+        - model: nom du modèle (ex: 'salarie', 'departement')
         - file: fichier Excel
         """
         try:
             model_name = request.data.get('model')
             file = request.FILES.get('file')
-
             if not model_name or not file:
                 return Response({
                     'success': False,
                     'error': 'Paramètres "model" et "file" requis'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+            
             # Créer l'importeur
             importer = GenericImporter(model_name)
             
             # Importer les données
             results = importer.import_from_excel(file)
-
+            
             # Enregistrer le log d'import
             total = results['inserted'] + results['updated']
             status_log = 'succes' if not results['errors'] else ('partiel' if total > 0 else 'erreur')
@@ -152,18 +145,18 @@ class ImportViewSet(viewsets.ViewSet):
                 details_erreurs=results['errors'],
                 cree_par=request.user
             )
-
+            
             logger.info(f"Import {model_name} terminé: {results['inserted']} insérés, {results['updated']} mis à jour, {len(results['errors'])} erreurs")
-
+            
             return Response({
                 'success': True,
+                'model': model_name,
                 'inserted': results['inserted'],
                 'updated': results['updated'],
                 'errors': results['errors'],
                 'warnings': results['warnings'],
                 'log_id': import_log.id
             }, status=status.HTTP_200_OK)
-
         except ValueError as e:
             return Response({
                 'success': False,
@@ -180,12 +173,11 @@ class ImportViewSet(viewsets.ViewSet):
     def history(self, request):
         """
         GET /api/import/history/
-        Récupère l'historique de tous les imports
+        Récupère l'historique des 50 derniers imports
         """
         try:
             logs = ImportLog.objects.all().order_by('-date_creation')[:50]
             serializer = ImportLogSerializer(logs, many=True)
-            
             return Response({
                 'success': True,
                 'count': len(logs),
@@ -211,10 +203,9 @@ class ImportViewSet(viewsets.ViewSet):
                     'success': False,
                     'error': 'Paramètre "log_id" requis'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+            
             log = ImportLog.objects.get(id=log_id)
             serializer = ImportLogSerializer(log)
-            
             return Response({
                 'success': True,
                 'log': serializer.data
@@ -230,31 +221,3 @@ class ImportViewSet(viewsets.ViewSet):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# ============================================================================
-# SERIALIZER POUR IMPORTLOG (si pas déjà dans serializers.py)
-# ============================================================================
-
-from rest_framework import serializers
-
-class ImportLogSerializer(serializers.ModelSerializer):
-    """Sérializer pour les logs d'import"""
-    cree_par_username = serializers.CharField(source='cree_par.username', read_only=True)
-    taux_succes = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = ImportLog
-        fields = (
-            'id', 'api_name', 'fichier_nom', 'total_lignes', 
-            'lignes_succes', 'lignes_erreur', 'statut', 
-            'taux_succes', 'details_erreurs', 'cree_par', 'cree_par_username',
-            'date_creation', 'date_modification'
-        )
-        read_only_fields = (
-            'id', 'date_creation', 'date_modification', 'taux_succes'
-        )
-    
-    def get_taux_succes(self, obj):
-        """Calcule et retourne le taux de succès en %"""
-        return obj.get_taux_succes()

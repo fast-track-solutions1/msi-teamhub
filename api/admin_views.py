@@ -1,157 +1,239 @@
-from django.shortcuts import render, redirect
+# api/admin_views.py - INTERFACE D'IMPORT MODERNE (CORRIGÉE) ✅
+
+from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_http_methods
 import requests
-import json
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from .forms import BulkImportForm
+import logging
+
+logger = logging.getLogger(__name__)
+
+# ============================================================================
+# UTILITY - OBTENIR UN TOKEN JWT
+# ============================================================================
+
+def get_jwt_token_for_user(user):
+    """Génère un token JWT pour l'utilisateur"""
+    from rest_framework_simplejwt.tokens import RefreshToken
+    refresh = RefreshToken.for_user(user)
+    return str(refresh.access_token)
+
+# ============================================================================
+# PAGE D'IMPORT PRINCIPALE
+# ============================================================================
 
 @staff_member_required
 def admin_import_page(request):
     """
     Page d'import en masse dans Django Admin
     Accessible à /admin/import/
+    
+    Utilise la NOUVELLE API REST: /api/import/
     """
     result = None
     error = None
-
+    models_list = []
+    
+    # 📡 Récupérer la liste des modèles disponibles
+    try:
+        access_token = get_jwt_token_for_user(request.user)
+        headers = {'Authorization': f'Bearer {access_token}'}
+        
+        response = requests.get(
+            'http://localhost:8000/api/import/models/',
+            headers=headers,
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            models_list = data.get('models', [])
+    except Exception as e:
+        logger.warning(f"Erreur récupération modèles: {str(e)}")
+    
+    # 📤 TRAITER L'UPLOAD DE FICHIER
     if request.method == 'POST':
-        form = BulkImportForm(request.POST, request.FILES)
-        if form.is_valid():
+        model_name = request.POST.get('model')
+        file = request.FILES.get('file')
+        
+        if not model_name or not file:
+            error = "❌ Veuillez sélectionner un modèle et un fichier"
+            messages.error(request, error)
+        else:
             try:
-                api_name = form.cleaned_data['api_name']
-                file = request.FILES['file']
-                skip_errors = form.cleaned_data.get('skip_errors', False)
-
-                # 📤 Préparer le fichier pour l'upload
-                files = {'file': file}
-                params = {
-                    'api_name': api_name,
-                    'skip_errors': 'true' if skip_errors else 'false'
-                }
-
-                # 🔑 Récupérer le token JWT de l'utilisateur
-                from rest_framework_simplejwt.tokens import RefreshToken
-                refresh = RefreshToken.for_user(request.user)
-                access_token = str(refresh.access_token)
-
-                # 📡 Appeler l'endpoint d'import
-                headers = {
-                    'Authorization': f'Bearer {access_token}'
-                }
-
-                # ✅ CORRIGER L'URL AVEC LE PARAMÈTRE EN URL PATH
+                access_token = get_jwt_token_for_user(request.user)
+                headers = {'Authorization': f'Bearer {access_token}'}
+                
+                # 📡 Appeler le nouvel endpoint d'import
                 response = requests.post(
-                    f'http://localhost:8000/api/import/upload/{api_name}/',
-                    files=files,
+                    'http://localhost:8000/api/import/upload/',
+                    data={'model': model_name},
+                    files={'file': file},
                     headers=headers,
                     timeout=30
                 )
-
+                
                 if response.status_code == 200:
                     result = response.json()
-
-                    # 📊 Afficher un message de succès
-                    if result.get('statut') == 'succes':
+                    
+                    # 📊 Afficher les résultats
+                    inserted = result.get('inserted', 0)
+                    updated = result.get('updated', 0)
+                    errors = len(result.get('errors', []))
+                    
+                    if errors == 0:
                         messages.success(
                             request,
-                            f"✅ Import réussi ! {result.get('lignes_succes')} ligne(s) importée(s)."
+                            f"✅ Import réussi ! {inserted} ligne(s) insérée(s), {updated} mise(s) à jour."
                         )
                     else:
                         messages.warning(
                             request,
-                            f"⚠️ Import partiel : {result.get('lignes_succes')} succès, {result.get('lignes_erreur')} erreur(s)."
+                            f"⚠️ Import partiel : {inserted + updated} succès, {errors} erreur(s)."
                         )
                 else:
                     error_data = response.json()
                     error = f"❌ Erreur: {error_data.get('error', 'Erreur inconnue')}"
                     messages.error(request, error)
-
+            
             except requests.exceptions.ConnectionError:
                 error = "❌ Impossible de se connecter à l'API. Vérifiez que le serveur Django est lancé."
                 messages.error(request, error)
+                logger.error(f"Erreur connexion API: {error}")
+            
             except Exception as e:
                 error = f"❌ Erreur lors de l'import: {str(e)}"
                 messages.error(request, error)
-    else:
-        form = BulkImportForm()
-
+                logger.error(f"Erreur import: {str(e)}")
+    
     context = {
-        'form': form,
         'result': result,
         'error': error,
+        'models': models_list,
         'title': '📥 Importation en Masse',
     }
-
+    
     return render(request, 'admin/import_page.html', context)
 
+# ============================================================================
+# TÉLÉCHARGER LE TEMPLATE EXCEL
+# ============================================================================
 
 @staff_member_required
+@require_http_methods(["GET"])
 def admin_download_template(request):
     """
-    Télécharge un template Excel basé sur le modèle sélectionné
+    Télécharge un template Excel pour un modèle
+    
+    Query param: ?model=departement
     """
-    api_name = request.GET.get('api_name', '')
-
-    if not api_name:
-        return HttpResponse('❌ Modèle non spécifié', status=400)
-
-    # 🔑 Récupérer le token JWT
-    from rest_framework_simplejwt.tokens import RefreshToken
-    refresh = RefreshToken.for_user(request.user)
-    access_token = str(refresh.access_token)
-
-    # 📡 Récupérer la structure du modèle
-    headers = {'Authorization': f'Bearer {access_token}'}
-
+    model_name = request.GET.get('model', '')
+    
+    if not model_name:
+        return HttpResponse('❌ Paramètre "model" requis', status=400)
+    
     try:
-        # ✅ CORRIGER L'URL AVEC LE PARAMÈTRE EN URL PATH
+        access_token = get_jwt_token_for_user(request.user)
+        headers = {'Authorization': f'Bearer {access_token}'}
+        
+        # 📡 Appeler le nouvel endpoint de template
         response = requests.get(
-            f'http://localhost:8000/api/import/structure/{api_name}/',
+            f'http://localhost:8000/api/import/template/?model={model_name}',
             headers=headers,
             timeout=10
         )
-
-        if response.status_code != 200:
-            return HttpResponse('❌ Impossible de récupérer la structure', status=400)
-
-        structure = response.json()
-        fields = structure.get('fields', [])
-
-        # 📊 Créer le fichier Excel
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Données"
-
-        # En-têtes
-        header_fill = PatternFill(start_color="217346", end_color="217346", fill_type="solid")
-        header_font = Font(bold=True, color="FFFFFF")
-
-        for col_idx, field in enumerate(fields, 1):
-            cell = ws.cell(row=1, column=col_idx)
-            cell.value = field
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-
-        # Auto-ajuster les largeurs
-        for col_idx, field in enumerate(fields, 1):
-            ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = len(field) + 2
-
-        # Exemple de ligne vide
-        for col_idx in range(1, len(fields) + 1):
-            ws.cell(row=2, column=col_idx).value = ""
-
-        # Sauvegarder
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = f'attachment; filename="template_{api_name}.xlsx"'
-        wb.save(response)
-
-        return response
-
+        
+        if response.status_code == 200:
+            # ✅ Le fichier Excel est retourné directement
+            response_content = response.content
+            
+            http_response = HttpResponse(
+                response_content,
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            http_response['Content-Disposition'] = f'attachment; filename="template_{model_name}.xlsx"'
+            return http_response
+        else:
+            error_data = response.json()
+            return HttpResponse(f"❌ Erreur: {error_data.get('error', 'Erreur inconnue')}", status=400)
+    
     except Exception as e:
+        logger.error(f"Erreur téléchargement template: {str(e)}")
         return HttpResponse(f'❌ Erreur: {str(e)}', status=500)
+
+# ============================================================================
+# OBTENIR LA STRUCTURE D'UN MODÈLE (API AJAX)
+# ============================================================================
+
+@staff_member_required
+@require_http_methods(["GET"])
+def get_model_structure_ajax(request):
+    """
+    Endpoint AJAX pour récupérer la structure d'un modèle
+    
+    Query param: ?model=departement
+    Returns: JSON avec structure du modèle
+    """
+    model_name = request.GET.get('model', '')
+    
+    if not model_name:
+        return JsonResponse({'error': 'Paramètre "model" requis'}, status=400)
+    
+    try:
+        access_token = get_jwt_token_for_user(request.user)
+        headers = {'Authorization': f'Bearer {access_token}'}
+        
+        # 📡 Appeler l'endpoint de structure
+        response = requests.get(
+            f'http://localhost:8000/api/import/structure/?model={model_name}',
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return JsonResponse(response.json())
+        else:
+            error_data = response.json()
+            return JsonResponse({'error': error_data.get('error', 'Erreur')}, status=400)
+    
+    except Exception as e:
+        logger.error(f"Erreur structure modèle: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ============================================================================
+# AFFICHER L'HISTORIQUE DES IMPORTS
+# ============================================================================
+
+@staff_member_required
+def admin_import_history(request):
+    """
+    Affiche l'historique des imports récents
+    """
+    history = []
+    
+    try:
+        access_token = get_jwt_token_for_user(request.user)
+        headers = {'Authorization': f'Bearer {access_token}'}
+        
+        # 📡 Récupérer l'historique
+        response = requests.get(
+            'http://localhost:8000/api/import/history/',
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            history = data.get('logs', [])
+    
+    except Exception as e:
+        logger.warning(f"Erreur historique: {str(e)}")
+    
+    context = {
+        'history': history,
+        'title': '📊 Historique des Imports',
+    }
+    
+    return render(request, 'admin/import_history.html', context)

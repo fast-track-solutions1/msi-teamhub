@@ -1,4 +1,4 @@
-# api/views.py - STRUCTURE CORRECTE
+# api/views.py - STRUCTURE CORRECTE - FICHIER COMPLET CORRIGÉ
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -13,8 +13,6 @@ from django.http import HttpResponse
 from django.utils.encoding import smart_str
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
-
 from .models import (
     Societe, Service, Grade, Departement, TypeAcces, OutilTravail, Circuit,
     Equipement, Salarie, AccesSalarie, HistoriqueSalarie, FichePoste,
@@ -23,7 +21,6 @@ from .models import (
     TypeApplicationAcces, AccesApplication, FicheParametresUser, Role,
     DemandeAcompte, DemandeSortie, ImportLog
 )
-
 
 # ✅ SERIALIZERS - UNE SEULE FOIS AU DÉBUT
 from .serializers import (
@@ -38,19 +35,16 @@ from .serializers import (
     FichePosteDetailSerializer, AmeliorationProposeeSerializer, ImportLogSerializer
 )
 
-
 from .permissions import (
     IsAdmin, IsRH, IsIT, IsDAF, IsComptable, IsResponsableService, IsSalarie,
     CanViewSalaries, CanEditSalaries, CanValidateRequests, CanManageDocuments,
     CanViewOwnData, CanManageEquipment, CanViewFinancial
 )
 
-
 from .utils import (
-    IMPORT_CONFIG, parse_value, get_current_data, 
+    IMPORT_CONFIG, parse_value, get_current_data,
     generate_template_dataframe
 )
-
 
 # ============================================================================
 # VIEWSETS BASE - PARAMÉTRAGE
@@ -66,7 +60,6 @@ class SocieteViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nom', 'date_creation']
     ordering = ['nom']
 
-
 class DepartementViewSet(viewsets.ModelViewSet):
     """ViewSet pour Departements"""
     queryset = Departement.objects.all()
@@ -77,7 +70,6 @@ class DepartementViewSet(viewsets.ModelViewSet):
     ordering_fields = ['numero', 'nom']
     ordering = ['numero']
 
-
 class CircuitViewSet(viewsets.ModelViewSet):
     """ViewSet pour Circuits - Nouveau"""
     queryset = Circuit.objects.all()
@@ -86,7 +78,6 @@ class CircuitViewSet(viewsets.ModelViewSet):
     filterset_fields = ['departement', 'actif']
     search_fields = ['nom', 'description']
     ordering_fields = ['nom']
-
 
 class ServiceViewSet(viewsets.ModelViewSet):
     """ViewSet pour Services"""
@@ -97,7 +88,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
     search_fields = ['nom', 'description']
     ordering_fields = ['nom']
 
-
 class GradeViewSet(viewsets.ModelViewSet):
     """ViewSet pour Grades"""
     queryset = Grade.objects.all()
@@ -107,7 +97,6 @@ class GradeViewSet(viewsets.ModelViewSet):
     search_fields = ['nom']
     ordering_fields = ['ordre', 'nom']
 
-
 class TypeAccesViewSet(viewsets.ModelViewSet):
     """ViewSet pour Types d'accès"""
     queryset = TypeAcces.objects.all()
@@ -115,7 +104,6 @@ class TypeAccesViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ['actif']
     search_fields = ['nom']
-
 
 class OutilTravailViewSet(viewsets.ModelViewSet):
     """ViewSet pour Outils de travail"""
@@ -125,7 +113,6 @@ class OutilTravailViewSet(viewsets.ModelViewSet):
     filterset_fields = ['actif']
     search_fields = ['nom', 'description']
 
-
 class CreneauTravailViewSet(viewsets.ModelViewSet):
     """ViewSet pour Créneaux de travail"""
     queryset = CreneauTravail.objects.all()
@@ -133,7 +120,6 @@ class CreneauTravailViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ['societe', 'actif']
     search_fields = ['nom']
-
 
 class EquipementViewSet(viewsets.ModelViewSet):
     """ViewSet pour Équipements"""
@@ -144,7 +130,6 @@ class EquipementViewSet(viewsets.ModelViewSet):
     search_fields = ['nom', 'description']
     ordering_fields = ['nom', 'type_equipement']
 
-
 class TypeApplicationAccesViewSet(viewsets.ModelViewSet):
     """ViewSet pour Types d'applications"""
     queryset = TypeApplicationAcces.objects.all()
@@ -152,7 +137,6 @@ class TypeApplicationAccesViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ['actif']
     search_fields = ['nom']
-
 
 # ============================================================================
 # VIEWSET SALARIÉ
@@ -228,7 +212,6 @@ class SalarieViewSet(viewsets.ModelViewSet):
         serializer = SalarieListSerializer(salaries, many=True)
         return Response(serializer.data)
 
-
 class EquipementInstanceViewSet(viewsets.ModelViewSet):
     """ViewSet pour instances équipements affectés"""
     queryset = EquipementInstance.objects.all()
@@ -236,7 +219,6 @@ class EquipementInstanceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, CanManageEquipment]
     filterset_fields = ['equipement', 'salarie', 'etat']
     ordering_fields = ['date_affectation']
-
 
 class AccesApplicationViewSet(viewsets.ModelViewSet):
     """ViewSet pour accès applicatifs"""
@@ -246,7 +228,6 @@ class AccesApplicationViewSet(viewsets.ModelViewSet):
     filterset_fields = ['salarie', 'application']
     search_fields = ['application']
 
-
 class AccesSalarieViewSet(viewsets.ModelViewSet):
     """ViewSet pour accès physiques"""
     queryset = AccesSalarie.objects.all()
@@ -254,14 +235,12 @@ class AccesSalarieViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filterset_fields = ['salarie', 'type_acces']
 
-
 class HoraireSalarieViewSet(viewsets.ModelViewSet):
     """ViewSet pour horaires supplémentaires"""
     queryset = HoraireSalarie.objects.all()
     serializer_class = HoraireSalarieSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['salarie', 'date_debut']
-
 
 class HistoriqueSalarieViewSet(viewsets.ModelViewSet):
     """ViewSet pour historique salariés"""
@@ -271,7 +250,6 @@ class HistoriqueSalarieViewSet(viewsets.ModelViewSet):
     filterset_fields = ['salarie']
     ordering_fields = ['date_changement']
     ordering = ['-date_changement']
-
 
 # ============================================================================
 # VIEWSETS DEMANDES (CONGÉS, ACOMPTES, SORTIES)
@@ -312,7 +290,7 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         demande = self.get_object()
         if not demande.valide_par_direct:
             return Response({'error': 'Doit être validée par responsable direct d\'abord'},
-                           status=status.HTTP_400_BAD_REQUEST)
+                          status=status.HTTP_400_BAD_REQUEST)
         demande.valide_par_service = True
         demande.date_validation_service = datetime.now()
         demande.commentaire_service = request.data.get('commentaire', '')
@@ -333,14 +311,12 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Demande rejetée'},
                        status=status.HTTP_200_OK)
 
-
 class SoldeCongeViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet lecture-seule pour solde congés"""
     queryset = SoldeConge.objects.all()
     serializer_class = SoldeCongeSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['salarie']
-
 
 class DemandeAcompteViewSet(viewsets.ModelViewSet):
     """ViewSet pour demandes d'acompte"""
@@ -371,7 +347,6 @@ class DemandeAcompteViewSet(viewsets.ModelViewSet):
         demande.save()
         return Response({'status': 'Approuvée par responsable service'})
 
-
 class DemandeSortieViewSet(viewsets.ModelViewSet):
     """ViewSet pour demandes de sortie"""
     queryset = DemandeSortie.objects.all()
@@ -381,7 +356,6 @@ class DemandeSortieViewSet(viewsets.ModelViewSet):
     ordering_fields = ['date_sortie']
     ordering = ['-date_sortie']
 
-
 class TravauxExceptionnelsViewSet(viewsets.ModelViewSet):
     """ViewSet pour travaux exceptionnels"""
     queryset = TravauxExceptionnels.objects.all()
@@ -390,7 +364,6 @@ class TravauxExceptionnelsViewSet(viewsets.ModelViewSet):
     filterset_fields = ['salarie', 'statut']
     ordering_fields = ['date_travail']
     ordering = ['-date_travail']
-
 
 # ============================================================================
 # VIEWSETS DOCUMENTS
@@ -405,7 +378,6 @@ class DocumentSalarieViewSet(viewsets.ModelViewSet):
     ordering_fields = ['date_upload']
     ordering = ['-date_upload']
 
-
 # ============================================================================
 # VIEWSETS FICHES DE POSTE
 # ============================================================================
@@ -419,7 +391,6 @@ class FichePosteViewSet(viewsets.ModelViewSet):
     search_fields = ['titre', 'description']
     ordering_fields = ['titre', 'service']
 
-
 class AmeliorationProposeeViewSet(viewsets.ModelViewSet):
     """ViewSet pour améliorations proposées"""
     queryset = AmeliorationProposee.objects.all()
@@ -428,7 +399,6 @@ class AmeliorationProposeeViewSet(viewsets.ModelViewSet):
     filterset_fields = ['fiche_poste', 'salarie_proposant', 'statut']
     ordering_fields = ['date_proposition', 'priorite']
     ordering = ['-priorite', '-date_proposition']
-
 
 # ============================================================================
 # VIEWSETS PARAMÉTRAGE
@@ -440,13 +410,11 @@ class FicheParametresUserViewSet(viewsets.ModelViewSet):
     serializer_class = FicheParametresUserSerializer
     permission_classes = [IsAuthenticated]
 
-
 class RoleViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet lecture-seule pour rôles"""
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
-
 
 # ============================================================================
 # IMPORT EN MASSE - ENDPOINTS
@@ -466,7 +434,6 @@ def import_list_apis(request):
         })
     return Response(data)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def import_get_structure(request, api_name):
@@ -474,9 +441,7 @@ def import_get_structure(request, api_name):
     cfg = IMPORT_CONFIG.get(api_name)
     if not cfg:
         return Response({"error": "API inconnue"}, status=404)
-    
     current_data = get_current_data(api_name)
-    
     return Response({
         "api_name": api_name,
         "label": cfg["label"],
@@ -487,7 +452,6 @@ def import_get_structure(request, api_name):
         "total_records": len(current_data) if current_data else 0,
     })
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def import_download_template(request, api_name):
@@ -495,11 +459,11 @@ def import_download_template(request, api_name):
     cfg = IMPORT_CONFIG.get(api_name)
     if not cfg:
         return Response({"error": "API inconnue"}, status=404)
-
+    
     df = generate_template_dataframe(api_name)
     if df is None:
         return Response({"error": "Erreur génération template"}, status=400)
-
+    
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name=api_name)
@@ -522,6 +486,27 @@ def import_download_template(request, api_name):
             cell.alignment = header_alignment
             cell.border = border
         
+        # ← LISTES DÉROULANTES POUR LES CHAMPS FK
+        fk_fields = cfg.get('fk_fields', {})
+        if fk_fields:
+            from openpyxl.worksheet.datavalidation import DataValidation
+            
+            for field, fk_model in fk_fields.items():
+                if field in cfg['fields']:
+                    col_index = cfg['fields'].index(field) + 1
+                    col_letter = get_column_letter(col_index)
+                    
+                    fk_objects = fk_model.objects.all().values_list('nom', flat=True)
+                    fk_list = ','.join([str(obj) for obj in fk_objects])
+                    
+                    dv = DataValidation(type='list', formula1=f'"{fk_list}"', allow_blank=True)
+                    dv.error = 'Sélectionnez une valeur valide'
+                    dv.errorTitle = 'Valeur invalide'
+                    worksheet.add_data_validation(dv)
+                    
+                    for row in range(2, 1000):
+                        dv.add(f'{col_letter}{row}')
+        
         for i, field in enumerate(cfg["fields"], 1):
             col_letter = get_column_letter(i)
             worksheet.column_dimensions[col_letter].width = 20
@@ -543,7 +528,6 @@ def import_download_template(request, api_name):
     response['Content-Disposition'] = f'attachment; filename={smart_str(filename)}'
     return response
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def import_upload_file(request, api_name):
@@ -551,13 +535,13 @@ def import_upload_file(request, api_name):
     cfg = IMPORT_CONFIG.get(api_name)
     if not cfg:
         return Response({"error": "API inconnue"}, status=404)
-
+    
     f = request.FILES.get('file')
     if not f:
         return Response({
             "error": "Aucun fichier envoyé (clé 'file' attendue)"
         }, status=400)
-
+    
     try:
         df = pd.read_excel(f)
     except Exception as e:
@@ -565,18 +549,18 @@ def import_upload_file(request, api_name):
             "error": "Erreur lecture fichier Excel",
             "details": str(e)
         }, status=400)
-
+    
     model = cfg["model"]
     fields = cfg["fields"]
     required = cfg["required"]
     fk_fields = cfg.get("fk_fields", {})
     fk_lookup = cfg.get("fk_lookup", {})
     field_types = cfg.get("field_types", {})
-
+    
     erreurs = []
     succes = 0
     donnees_valides = []
-
+    
     # Vérifier colonnes attendues
     missing_cols = [c for c in fields if c not in df.columns]
     if missing_cols:
@@ -585,35 +569,38 @@ def import_upload_file(request, api_name):
             "missing_columns": missing_cols,
             "expected_columns": fields,
         }, status=400)
-
+    
     # Valider et traiter chaque ligne
     for index, row in df.iterrows():
         ligne_num = index + 2
         data = {}
         ligne_erreurs = []
-
+        
         for field in fields:
             value = row.get(field)
             
+            # Vérifier si champ obligatoire est vide
             if field in required and (pd.isna(value) or value == ""):
                 ligne_erreurs.append(f"❌ Champ obligatoire manquant: '{field}'")
                 continue
-
+            
+            # Si vide et pas obligatoire
             if pd.isna(value) or value == "":
                 data[field] = None
                 continue
-
+            
+            # Parser la valeur
             try:
                 field_type = field_types.get(field, "string")
                 parsed_value = parse_value(value, field_type)
             except ValueError as e:
                 ligne_erreurs.append(f"❌ {field}: {e}")
                 continue
-
+            
+            # Traiter les ForeignKey
             if field in fk_fields:
                 fk_model = fk_fields[field]
                 lookup_field = fk_lookup.get(field, "nom")
-                
                 try:
                     obj = fk_model.objects.get(**{lookup_field: str(parsed_value).strip()})
                     data[field] = obj
@@ -627,16 +614,17 @@ def import_upload_file(request, api_name):
                     continue
             else:
                 data[field] = parsed_value
-
+        
+        # Si erreurs sur la ligne, la marquer
         if ligne_erreurs:
             erreurs.append({
                 "ligne": ligne_num,
                 "erreurs": ligne_erreurs,
             })
             continue
-
+        
         donnees_valides.append(data)
-
+    
     # Créer les objets en base
     for idx, data in enumerate(donnees_valides):
         try:
@@ -647,10 +635,10 @@ def import_upload_file(request, api_name):
                 "ligne": idx + 2,
                 "erreurs": [f"❌ Erreur création: {str(e)}"],
             })
-
+    
     # Déterminer le statut final
     statut_final = 'succes' if len(erreurs) == 0 else ('partiel' if succes > 0 else 'erreur')
-
+    
     # Créer le log
     log = ImportLog.objects.create(
         api_name=api_name,
@@ -662,7 +650,7 @@ def import_upload_file(request, api_name):
         details_erreurs=json.dumps(erreurs, ensure_ascii=False, indent=2),
         cree_par=request.user if request.user.is_authenticated else None,
     )
-
+    
     return Response({
         "api_name": api_name,
         "fichier": f.name,
@@ -675,7 +663,6 @@ def import_upload_file(request, api_name):
         "import_log_id": log.id,
     }, status=200)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def import_get_history(request):
@@ -685,12 +672,10 @@ def import_get_history(request):
         'lignes_succes', 'lignes_erreur', 'statut',
         'cree_par__username', 'date_creation'
     ).order_by('-date_creation')[:50]
-    
     return Response({
         "total": len(logs),
         "logs": list(logs),
     })
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdmin])
@@ -700,7 +685,7 @@ def import_get_details(request, log_id):
         log = ImportLog.objects.get(id=log_id)
     except ImportLog.DoesNotExist:
         return Response({"error": "Log non trouvé"}, status=404)
-
+    
     return Response({
         "id": log.id,
         "api_name": log.api_name,
@@ -715,9 +700,8 @@ def import_get_details(request, log_id):
         "date_creation": log.date_creation.isoformat(),
     })
 
-
 # ============================================================================
-# VIEWSET IMPORTLOG - ✅ AJOUTER À LA FIN
+# VIEWSET IMPORTLOG
 # ============================================================================
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):

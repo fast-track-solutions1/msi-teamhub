@@ -1,6 +1,7 @@
 # api/admin.py - Configuration complète avec ImportLog
 
 from django.contrib import admin
+from api.widgets import DualListWidget
 from django.http import HttpResponse
 from django.utils.html import format_html
 import csv
@@ -138,10 +139,11 @@ class SocieteAdmin(BatchImportExportMixin, admin.ModelAdmin):
 
 
 @admin.register(Departement)
-class DepartementAdmin(BatchImportExportMixin, admin.ModelAdmin):
-    list_display = ('numero', 'nom', 'region', 'societe', 'actif')
-    list_filter = ('societe', 'actif')
-    search_fields = ('numero', 'nom', 'region')
+class DepartementAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'nom', 'region', 'chef_lieu', 'societe', 'nombre_circuits', 'actif')
+    list_filter = ('actif', 'societe', 'region')
+    search_fields = ('numero', 'nom', 'region', 'chef_lieu')
+    readonly_fields = ('date_creation',)
 
 
 @admin.register(Circuit)
@@ -212,7 +214,32 @@ class SalarieAdmin(BatchImportExportMixin, admin.ModelAdmin):
     list_display = ('matricule', 'prenom', 'nom', 'mail_professionnel', 'service', 'statut')
     list_filter = ('societe', 'service', 'grade', 'statut', 'date_embauche')
     search_fields = ('matricule', 'prenom', 'nom', 'mail_professionnel')
-    readonly_fields = ('date_creation', 'date_modification')
+    readonly_fields = ('date_creation', 'date_modification', 'get_circuits_display')
+    exclude = ('circuit',)
+    
+    def get_circuits_display(self, obj):
+        """Affiche les circuits associés aux départements du salarié"""
+        if obj.departements.exists():
+            circuits = []
+            for dept in obj.departements.all():
+                circuits.extend(dept.circuits.values_list('nom', flat=True))
+            return ', '.join(set(circuits)) if circuits else "Aucun circuit"
+        return "Aucun département sélectionné"
+    
+    get_circuits_display.short_description = "Circuits (calculé depuis les départements)"
+    
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == 'departements':
+            from api.widgets import DualListWidget
+            kwargs['widget'] = DualListWidget(choices=Departement.objects.values_list('id', 'nom'))
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+    
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == 'departements':
+            from api.widgets import DualListWidget
+            kwargs['widget'] = DualListWidget(choices=Departement.objects.values_list('id', 'nom'))
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
 
 
 @admin.register(HistoriqueSalarie)
