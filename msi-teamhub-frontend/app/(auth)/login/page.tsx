@@ -23,7 +23,20 @@ import {
   Package,
   Lightbulb,
   TrendingUp,
+  LucideIcon,
 } from 'lucide-react';
+
+// ✅ FIX 1: Define icon map at module level to avoid hydration issues
+const ICON_MAP: Record<string, LucideIcon> = {
+  GitBranch,
+  FileText,
+  DollarSign,
+  Calendar,
+  Package,
+  Lightbulb,
+  TrendingUp,
+  Zap,
+};
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -59,19 +72,23 @@ export default function LoginPage() {
     }
   };
 
+  // ✅ FIX 2: Use string keys instead of component references
   const features = [
-    { icon: GitBranch, title: 'Organizational Chart', desc: 'Hierarchical team structure & reporting' },
-    { icon: FileText, title: 'Job Descriptions', desc: 'Comprehensive role documentation' },
-    { icon: DollarSign, title: 'Payroll Management', desc: 'Automated salary & compensation' },
-    { icon: Calendar, title: 'Leave Management', desc: 'Time-off requests & approvals' },
-    { icon: Package, title: 'Equipment Tracking', desc: 'Asset & resource management' },
-    { icon: Lightbulb, title: 'Suggestions & Feedback', desc: 'Employee engagement & ideas' },
-    { icon: TrendingUp, title: 'Real-Time Dashboards', desc: 'Live HR analytics & insights' },
-    { icon: Zap, title: 'Performance Optimization', desc: 'Continuous improvement tools' },
+    { icon: 'GitBranch', title: 'Organizational Chart', desc: 'Hierarchical team structure & reporting' },
+    { icon: 'FileText', title: 'Job Descriptions', desc: 'Comprehensive role documentation' },
+    { icon: 'DollarSign', title: 'Payroll Management', desc: 'Automated salary & compensation' },
+    { icon: 'Calendar', title: 'Leave Management', desc: 'Time-off requests & approvals' },
+    { icon: 'Package', title: 'Equipment Tracking', desc: 'Asset & resource management' },
+    { icon: 'Lightbulb', title: 'Suggestions & Feedback', desc: 'Employee engagement & ideas' },
+    { icon: 'TrendingUp', title: 'Real-Time Dashboards', desc: 'Live HR analytics & insights' },
+    { icon: 'Zap', title: 'Performance Optimization', desc: 'Continuous improvement tools' },
   ];
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden bg-[#0B1120]">
+    <div 
+      className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden bg-[#0B1120]"
+      suppressHydrationWarning
+    >
       {/* Tech Grid Background Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
@@ -113,12 +130,13 @@ export default function LoginPage() {
           {/* Features Grid */}
           <div className="grid grid-cols-2 gap-4 pt-4">
             {features.map((feature, idx) => {
-              const Icon = feature.icon;
+              // ✅ FIX 3: Safely get icon component from map
+              const IconComponent = ICON_MAP[feature.icon];
               return (
                 <div key={idx} className="group hover:translate-y-1 transition-transform cursor-pointer">
                   <div className="flex items-start gap-3 p-4 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-colors">
                     <div className="flex-shrink-0 w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                      <Icon className="w-5 h-5 text-blue-400" />
+                      {IconComponent ? <IconComponent className="w-5 h-5 text-blue-400" /> : null}
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-white leading-tight">{feature.title}</h3>
@@ -150,102 +168,106 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="w-full max-w-xl mx-auto animate-in slide-in-from-bottom-8 duration-700">
-          <Card className="border border-slate-800 bg-slate-900/80 backdrop-blur-2xl shadow-2xl p-10 lg:p-12 rounded-3xl">
-            {/* Mobile Logo */}
-            <div className="lg:hidden mb-10 text-center animate-in fade-in duration-500">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="h-14 w-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <span className="text-3xl font-black text-white">M</span>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">MSI TeamHub</div>
-                  <div className="text-xs text-slate-400 font-bold">Enterprise Edition</div>
-                </div>
+        <div className="w-full max-w-md animate-in slide-in-from-right-8 duration-700">
+          <Card className="bg-slate-900/80 border-slate-700/50 shadow-2xl">
+            <div className="p-8 lg:p-10">
+              {/* Card Header */}
+              <div className="mb-8 text-center">
+                <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">Welcome Back</h2>
+                <p className="text-sm text-slate-400">Sign in to your MSI TeamHub account</p>
               </div>
-              <p className="text-slate-300 text-base font-semibold">Empower Your Team, Accelerate Growth</p>
-            </div>
 
-            <form onSubmit={handleLogin} className="space-y-7">
+              {/* Error Alert */}
               {error && (
-                <Alert variant="destructive" className="bg-red-900/20 border-red-900/50 text-red-400 animate-in shake duration-300">
-                  <AlertCircle className="h-5 w-5" />
-                  <AlertDescription className="ml-2">{error}</AlertDescription>
+                <Alert variant="destructive" className="mb-6 bg-red-900/20 border-red-800/50">
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <AlertDescription className="text-red-300">{error}</AlertDescription>
                 </Alert>
               )}
 
-              <div className="space-y-3">
-                <label className="text-base font-semibold text-slate-200">Corporate ID / Email</label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-4 h-6 w-6 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                  <Input
-                    type="text"
-                    placeholder="admin@company.com"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-14 pr-4 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all h-13 text-base rounded-xl"
-                  />
+              {/* Login Form */}
+              <form onSubmit={handleLogin} className="space-y-7">
+                {/* Username/Email Field - ✅ FIXED: Changed from type="email" to type="text" */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider">Username or Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-4 h-6 w-6 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                    <Input
+                      type="text"
+                      placeholder="Enter username or email"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-14 bg-slate-800/50 border-slate-700/50 text-white placeholder-slate-500 h-12 focus:border-blue-500 focus:ring-blue-500/30"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider">Password</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-4 h-6 w-6 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      className="pl-14 pr-12 bg-slate-800/50 border-slate-700/50 text-white placeholder-slate-500 h-12 focus:border-blue-500 focus:ring-blue-500/30"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isLoading || !username || !password}
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              {/* Security Features */}
+              <div className="mt-8 pt-6 border-t border-slate-800/50 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <ShieldCheck className="h-4 w-4 text-green-400" />
+                  </div>
+                  <div className="text-sm">
+                    <h4 className="text-white font-semibold">Enterprise Security</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">End-to-end encrypted connections</p>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-base font-semibold text-slate-200">Password</label>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-4 h-6 w-6 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                    className="pl-14 pr-12 bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all h-13 text-base rounded-xl"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <label className="flex items-center gap-3 text-base text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
-                  <input type="checkbox" className="w-5 h-5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-900 cursor-pointer" />
-                  <span>Remember this device</span>
-                </label>
-                <a href="#" className="text-base text-blue-400 hover:text-blue-300 font-semibold transition-colors">
-                  Need help?
-                </a>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-900/30 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-8"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <span className="flex items-center gap-3 text-lg">
-                    Sign In <ArrowRight className="h-5 w-5" />
-                  </span>
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-10 pt-8 border-t border-slate-800/50 text-center space-y-4">
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
-                <ShieldCheck className="h-4 w-4" />
-                <span>Bank-grade security encryption</span>
-              </div>
-              <p className="text-xs text-slate-600 font-medium">© 2025-2026 MSI TeamHub. Enterprise Edition.</p>
             </div>
           </Card>
+
+          {/* Footer */}
+          <div className="text-center mt-6 text-xs text-slate-500">
+            <p>© 2025-2026 MSI TeamHub. Enterprise Edition.</p>
+          </div>
         </div>
       </div>
     </div>

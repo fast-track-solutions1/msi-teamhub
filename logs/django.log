@@ -16273,3 +16273,14 @@ Traceback (most recent call last):
     raise TypeError(
 TypeError: 'Meta.fields' must not contain non-model field names: departement
 ERROR 2025-12-03 12:34:31,750 basehttp 17 127510599694016 "GET /api/salaries/ HTTP/1.1" 500 127208
+ERROR 2025-12-04 12:47:48,213 import_utils 17 125202776184512 Erreur ligne 2: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Nom du Service'
+ERROR 2025-12-04 12:47:48,224 import_utils 17 125202776184512 Erreur ligne 3: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Direction Générale'
+ERROR 2025-12-04 12:47:48,226 import_utils 17 125202776184512 Erreur ligne 4: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Direction Administrative et Financière'
+ERROR 2025-12-04 12:47:48,228 import_utils 17 125202776184512 Erreur ligne 5: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Coordination des Pôles'
+ERROR 2025-12-04 12:47:48,230 import_utils 17 125202776184512 Erreur ligne 6: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Exploitation'
+ERROR 2025-12-04 12:47:48,231 import_utils 17 125202776184512 Erreur ligne 7: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Parc et Feuille de Route'
+ERROR 2025-12-04 12:47:48,233 import_utils 17 125202776184512 Erreur ligne 8: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Ressources Humaines'
+ERROR 2025-12-04 12:47:48,234 import_utils 17 125202776184512 Erreur ligne 9: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Facturation'
+ERROR 2025-12-04 12:47:48,236 import_utils 17 125202776184512 Erreur ligne 10: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Comptabilité'
+ERROR 2025-12-04 12:47:48,238 import_utils 17 125202776184512 Erreur ligne 11: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service Juridique'
+ERROR 2025-12-04 12:47:48,239 import_utils 17 125202776184512 Erreur ligne 12: Erreur conversion champ 'societe': Impossible de trouver Societe avec nom ou id='Service IT et Infrastructure Réseau'

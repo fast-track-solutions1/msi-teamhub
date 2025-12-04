@@ -98,7 +98,7 @@ class ApiClient {
   /**
    * Sauvegarde le token
    */
-  public setToken(token: string): void {
+  setToken(token: string): void {
     this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', token);
@@ -106,473 +106,262 @@ class ApiClient {
   }
 
   /**
-   * Récupère les headers avec authentification
+   * Construit les headers avec le token JWT
    */
-  private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // ✅ Charge le token s'il existe
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return headers;
   }
 
   /**
-   * Effectue une requête GET
+   * Construit l'URL avec les paramètres de query
    */
-  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
+  private buildUrl(endpoint: string, params?: Record<string, any>): string {
+    const url = new URL(`${this.baseUrl}${endpoint}`, window?.location?.origin || 'http://localhost:3000');
     
     if (params) {
-      Object.keys(params).forEach(key => {
-        if (params[key] !== null && params[key] !== undefined) {
-          url.searchParams.append(key, params[key]);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          url.searchParams.append(key, String(value));
         }
       });
     }
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    return this.handleResponse<T>(response);
+    return url.toString();
   }
 
   /**
-   * Effectue une requête POST
+   * GET - Récupère les données
    */
-  async post<T>(endpoint: string, data: any): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    });
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+    try {
+      const url = this.buildUrl(endpoint, params);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
 
-    return this.handleResponse<T>(response);
-  }
+      // ✅ Gère 401 Unauthorized (token expiré)
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+        }
+        throw new Error('Authentification requise');
+      }
 
-  /**
-   * Effectue une requête PUT
-   */
-  async put<T>(endpoint: string, data: any): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    });
+      if (!response.ok) {
+        const errorData: ApiError = await response.json().catch(() => ({}));
+        throw this.createError(response.status, errorData);
+      }
 
-    return this.handleResponse<T>(response);
-  }
-
-  /**
-   * Effectue une requête PATCH
-   */
-  async patch<T>(endpoint: string, data: any): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'PATCH',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    return this.handleResponse<T>(response);
-  }
-
-  /**
-   * Effectue une requête DELETE
-   */
-  async delete<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    return this.handleResponse<T>(response);
-  }
-
-  /**
-   * Gère les réponses et erreurs
-   */
-  private async handleResponse<T>(response: Response): Promise<T> {
-    const contentType = response.headers.get('content-type');
-    let data: any;
-
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
-    } else if (response.status === 204) {
-      return {} as T;
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      const error: ApiError = {
-        status: response.status,
-        statusText: response.statusText,
-        ...data,
-      };
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API GET Error:', error);
       throw error;
     }
+  }
 
-    return data as T;
+  /**
+   * POST - Crée une nouvelle ressource
+   */
+  async post<T>(endpoint: string, payload?: any): Promise<T> {
+    try {
+      const url = this.buildUrl(endpoint);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload || {}),
+      });
+
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        }
+        throw new Error('Authentification requise');
+      }
+
+      if (!response.ok) {
+        const errorData: ApiError = await response.json().catch(() => ({}));
+        throw this.createError(response.status, errorData);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API POST Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * PUT - Remplace une ressource
+   */
+  async put<T>(endpoint: string, payload?: any): Promise<T> {
+    try {
+      const url = this.buildUrl(endpoint);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload || {}),
+      });
+
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        }
+        throw new Error('Authentification requise');
+      }
+
+      if (!response.ok) {
+        const errorData: ApiError = await response.json().catch(() => ({}));
+        throw this.createError(response.status, errorData);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API PUT Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * PATCH - Met à jour partiellement une ressource
+   */
+  async patch<T>(endpoint: string, payload?: any): Promise<T> {
+    try {
+      const url = this.buildUrl(endpoint);
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload || {}),
+      });
+
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        }
+        throw new Error('Authentification requise');
+      }
+
+      if (!response.ok) {
+        const errorData: ApiError = await response.json().catch(() => ({}));
+        throw this.createError(response.status, errorData);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API PATCH Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * DELETE - Supprime une ressource
+   */
+  async delete<T>(endpoint: string): Promise<T> {
+    try {
+      const url = this.buildUrl(endpoint);
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        }
+        throw new Error('Authentification requise');
+      }
+
+      if (!response.ok && response.status !== 204) {
+        const errorData: ApiError = await response.json().catch(() => ({}));
+        throw this.createError(response.status, errorData);
+      }
+
+      if (response.status === 204) {
+        return {} as T;
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API DELETE Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crée une erreur formatée
+   */
+  private createError(status: number, data: ApiError): Error {
+    const message = data.detail || data.error || `Erreur API: ${status}`;
+    const error = new Error(message);
+    (error as any).status = status;
+    (error as any).data = data;
+    return error;
   }
 }
 
 // ============================================================================
-// INSTANCE GLOBALE
+// INSTANCE SINGLETON
 // ============================================================================
 
 export const apiClient = new ApiClient();
 
 // ============================================================================
-// SERVICES API - DÉPARTEMENTS
-// ============================================================================
-
-export const departmentService = {
-  /**
-   * Récupère tous les départements
-   */
-  async getAll(params?: { societe?: number; actif?: boolean }): Promise<Department[]> {
-    const response = await apiClient.get<ApiResponse<Department>>('/departements/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un département par ID
-   */
-  async getById(id: number): Promise<Department> {
-    return apiClient.get<Department>(`/departements/${id}/`);
-  },
-
-  /**
-   * Crée un département
-   */
-  async create(data: Partial<Department>): Promise<Department> {
-    return apiClient.post<Department>('/departements/', data);
-  },
-
-  /**
-   * Modifie un département
-   */
-  async update(id: number, data: Partial<Department>): Promise<Department> {
-    return apiClient.put<Department>(`/departements/${id}/`, data);
-  },
-
-  /**
-   * Supprime un département
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/departements/${id}/`);
-  },
-};
-
-// ============================================================================
-// SERVICES API - SERVICES
-// ============================================================================
-
-export const serviceService = {
-  /**
-   * Récupère tous les services
-   */
-  async getAll(params?: { societe?: number; actif?: boolean }): Promise<Service[]> {
-    const response = await apiClient.get<ApiResponse<Service>>('/services/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un service par ID
-   */
-  async getById(id: number): Promise<Service> {
-    return apiClient.get<Service>(`/services/${id}/`);
-  },
-
-  /**
-   * Crée un service
-   */
-  async create(data: Partial<Service>): Promise<Service> {
-    return apiClient.post<Service>('/services/', data);
-  },
-
-  /**
-   * Modifie un service
-   */
-  async update(id: number, data: Partial<Service>): Promise<Service> {
-    return apiClient.put<Service>(`/services/${id}/`, data);
-  },
-
-  /**
-   * Supprime un service
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/services/${id}/`);
-  },
-};
-
-// ============================================================================
-// SERVICES API - GRADES
-// ============================================================================
-
-export const gradeService = {
-  /**
-   * Récupère tous les grades
-   */
-  async getAll(params?: { societe?: number; actif?: boolean }): Promise<Grade[]> {
-    const response = await apiClient.get<ApiResponse<Grade>>('/grades/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un grade par ID
-   */
-  async getById(id: number): Promise<Grade> {
-    return apiClient.get<Grade>(`/grades/${id}/`);
-  },
-
-  /**
-   * Crée un grade
-   */
-  async create(data: Partial<Grade>): Promise<Grade> {
-    return apiClient.post<Grade>('/grades/', data);
-  },
-
-  /**
-   * Modifie un grade
-   */
-  async update(id: number, data: Partial<Grade>): Promise<Grade> {
-    return apiClient.put<Grade>(`/grades/${id}/`, data);
-  },
-
-  /**
-   * Supprime un grade
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/grades/${id}/`);
-  },
-};
-
-// ============================================================================
-// SERVICES API - SALARIÉS
-// ============================================================================
-
-export const employeeService = {
-  /**
-   * Récupère tous les salariés
-   */
-  async getAll(params?: { service?: number; departement?: number; actif?: boolean; search?: string }): Promise<Employee[]> {
-    const response = await apiClient.get<ApiResponse<Employee>>('/salaries/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un salarié par ID
-   */
-  async getById(id: number): Promise<Employee> {
-    return apiClient.get<Employee>(`/salaries/${id}/`);
-  },
-
-  /**
-   * Crée un salarié
-   */
-  async create(data: Partial<Employee>): Promise<Employee> {
-    return apiClient.post<Employee>('/salaries/', data);
-  },
-
-  /**
-   * Modifie un salarié
-   */
-  async update(id: number, data: Partial<Employee>): Promise<Employee> {
-    return apiClient.put<Employee>(`/salaries/${id}/`, data);
-  },
-
-  /**
-   * Supprime un salarié
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/salaries/${id}/`);
-  },
-
-  /**
-   * Recherche des salariés
-   */
-  async search(query: string): Promise<Employee[]> {
-    return this.getAll({ search: query });
-  },
-};
-
-// ============================================================================
-// SERVICES API - CIRCUITS
-// ============================================================================
-
-export const circuitService = {
-  /**
-   * Récupère tous les circuits
-   */
-  async getAll(params?: { departement?: number; actif?: boolean }): Promise<Circuit[]> {
-    const response = await apiClient.get<ApiResponse<Circuit>>('/circuits/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un circuit par ID
-   */
-  async getById(id: number): Promise<Circuit> {
-    return apiClient.get<Circuit>(`/circuits/${id}/`);
-  },
-
-  /**
-   * Crée un circuit
-   */
-  async create(data: Partial<Circuit>): Promise<Circuit> {
-    return apiClient.post<Circuit>('/circuits/', data);
-  },
-
-  /**
-   * Modifie un circuit
-   */
-  async update(id: number, data: Partial<Circuit>): Promise<Circuit> {
-    return apiClient.put<Circuit>(`/circuits/${id}/`, data);
-  },
-
-  /**
-   * Supprime un circuit
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/circuits/${id}/`);
-  },
-};
-
-// ============================================================================
-// SERVICES API - ÉQUIPEMENTS
-// ============================================================================
-
-export const equipmentService = {
-  /**
-   * Récupère tous les équipements
-   */
-  async getAll(params?: { type_equipement?: string; actif?: boolean }): Promise<Equipment[]> {
-    const response = await apiClient.get<ApiResponse<Equipment>>('/equipements/', params);
-    return response.results || [];
-  },
-
-  /**
-   * Récupère un équipement par ID
-   */
-  async getById(id: number): Promise<Equipment> {
-    return apiClient.get<Equipment>(`/equipements/${id}/`);
-  },
-
-  /**
-   * Crée un équipement
-   */
-  async create(data: Partial<Equipment>): Promise<Equipment> {
-    return apiClient.post<Equipment>('/equipements/', data);
-  },
-
-  /**
-   * Modifie un équipement
-   */
-  async update(id: number, data: Partial<Equipment>): Promise<Equipment> {
-    return apiClient.put<Equipment>(`/equipements/${id}/`, data);
-  },
-
-  /**
-   * Supprime un équipement
-   */
-  async delete(id: number): Promise<void> {
-    return apiClient.delete(`/equipements/${id}/`);
-  },
-};
-
-// ============================================================================
-// SERVICES API - DASHBOARD (STATS)
-// ============================================================================
-
-export interface DashboardStats {
-  total_employees: number;
-  active_employees: number;
-  total_equipment: number;
-  total_job_sheets: number;
-  employees_by_department: Array<{ name: string; count: number }>;
-  employees_by_service: Array<{ name: string; count: number }>;
-  employees_by_grade: Array<{ name: string; count: number }>;
-}
-
-export const dashboardService = {
-  /**
-   * Récupère les statistiques du dashboard
-   */
-  async getStats(): Promise<DashboardStats> {
-    try {
-      return await apiClient.get<DashboardStats>('/dashboard/stats/');
-    } catch (error) {
-      console.warn('Dashboard stats not available, using fallback data');
-      throw error;
-    }
-  },
-
-  /**
-   * Récupère les effectifs par département
-   */
-  async getDepartmentStats(): Promise<Array<{ name: string; employees: number; circuits: number; active: number }>> {
-    try {
-      return await apiClient.get('/dashboard/departments/');
-    } catch (error) {
-      console.warn('Department stats not available');
-      throw error;
-    }
-  },
-
-  /**
-   * Récupère les effectifs par service
-   */
-  async getServiceStats(): Promise<Array<{ name: string; employees: number }>> {
-    try {
-      return await apiClient.get('/dashboard/services/');
-    } catch (error) {
-      console.warn('Service stats not available');
-      throw error;
-    }
-  },
-
-  /**
-   * Récupère les effectifs par grade
-   */
-  async getGradeStats(): Promise<Array<{ name: string; employees: number }>> {
-    try {
-      return await apiClient.get('/dashboard/grades/');
-    } catch (error) {
-      console.warn('Grade stats not available');
-      throw error;
-    }
-  },
-};
-
-// ============================================================================
-// UTILITY FUNCTIONS
+// UTILITAIRES
 // ============================================================================
 
 /**
- * Formate une erreur API en message lisible
+ * Formate les erreurs API pour l'affichage
  */
 export function formatApiError(error: any): string {
-  if (error.detail) return error.detail;
-  if (error.error) return error.error;
-  if (error.message) return error.message;
-  if (typeof error === 'string') return error;
-  
-  return 'Une erreur est survenue. Veuillez réessayer.';
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error?.detail) {
+    return error.detail;
+  }
+
+  if (error?.error) {
+    return error.error;
+  }
+
+  if (error?.response?.data?.detail) {
+    return error.response.data.detail;
+  }
+
+  return 'Une erreur est survenue';
 }
 
 /**
- * Vérifie si une réponse est une erreur API
+ * Vérifie si c'est une erreur API
  */
-export function isApiError(error: any): error is ApiError {
-  return error && (error.detail || error.error || error.status);
+export function isApiError(error: any): boolean {
+  return error instanceof Error || typeof error === 'object';
 }
