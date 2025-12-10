@@ -1,6 +1,7 @@
 'use client';
-
+import { Salarie } from '@/lib/salarie-api';
 import { useState, useEffect, useMemo } from 'react';
+import { useFetch } from '@/hooks/useFetch';
 import { Plus, Search, Filter, RefreshCw, Download, BarChart3, AlertCircle, Loader2 } from 'lucide-react';
 import { Service, serviceApi } from '@/lib/service-api';
 import { Societe, societeApi } from '@/lib/societe-api';
@@ -17,6 +18,8 @@ export default function ServicesSettingsPage() {
   const [showStats, setShowStats] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [mounted, setMounted] = useState(false);
+  const { data: salariesData, loading: salariesLoading } = useFetch('/api/salaries/');
+  const salaries = Array.isArray(salariesData) ? salariesData : salariesData?.results || [];
 
   // 🔍 Filtres et recherche
   const [searchTerm, setSearchTerm] = useState('');
@@ -349,6 +352,7 @@ export default function ServicesSettingsPage() {
         <ServiceForm
           service={editingService}
           societes={societes}
+          salaries={salaries}
           onSave={editingService ? (data) => handleUpdate(editingService.id, data) : handleCreate}
           onCancel={() => {
             setShowForm(false);

@@ -305,34 +305,39 @@ class SalarieDetailSerializer(serializers.ModelSerializer):
     societe_nom = serializers.CharField(source='societe.nom', read_only=True)
     responsable_nom = serializers.SerializerMethodField(read_only=True)
     creneau_nom = serializers.CharField(source='creneau_travail.nom', read_only=True)
-    departement_num = serializers.CharField(source='departement.numero', read_only=True)
+    departements_list = serializers.SerializerMethodField(read_only=True)  # ✅ MODIFIÉ
     anciennete = serializers.SerializerMethodField(read_only=True)
     statut_actuel = serializers.SerializerMethodField(read_only=True)
     jour_mois_naissance = serializers.CharField(read_only=True)
     
-    equipements = EquipementInstanceSerializer(source='equipements', many=True, read_only=True)
-    acces_applicatif = AccesApplicationSerializer(source='acces_applicatif', many=True, read_only=True)
-    acces_locaux = AccesSalarieSerializer(source='acces_locaux', many=True, read_only=True)
-    historique = HistoriqueSalarieSerializer(source='historique', many=True, read_only=True)
-    horaires_supplementaires = HoraireSalarieSerializer(source='horaires_supplementaires', many=True, read_only=True)
+    equipements = EquipementInstanceSerializer(many=True, read_only=True)
+    acces_applicatif = AccesApplicationSerializer(many=True, read_only=True)
+    acces_locaux = AccesSalarieSerializer(many=True, read_only=True)
+    historique = HistoriqueSalarieSerializer(many=True, read_only=True)
+    horaires_supplementaires = HoraireSalarieSerializer(many=True, read_only=True)
     
     class Meta:
         model = Salarie
         fields = [
-            'id', 'user', 'nom', 'prenom', 'matricule', 'genre',
-            'date_naissance', 'jour_mois_naissance', 'telephone',
+            'id', 'user', 'nom', 'prenom', 'matricule', 'genre', 
+            'date_naissance', 'jour_mois_naissance', 'telephone', 
             'mail_professionnel', 'telephone_professionnel', 'extension_3cx',
-            'societe', 'societe_nom', 'service', 'service_nom', 'grade',
-            'grade_nom', 'responsable_direct', 'responsable_nom', 'poste',
-            'departement', 'departement_num', 'circuit', 'date_embauche',
-            'anciennete', 'statut', 'date_sortie', 'en_poste',
-            'creneau_travail', 'creneau_nom', 'statut_actuel', 'equipements',
-            'acces_applicatif', 'acces_locaux', 'historique',
-            'horaires_supplementaires', 'date_creation', 'date_modification'
+            'societe', 'societe_nom', 
+            'service', 'service_nom', 
+            'grade', 'grade_nom', 
+            'responsable_direct', 'responsable_nom', 
+            'poste', 
+            'departements', 'departements_list',  # ✅ MODIFIÉ (pluriel)
+            'circuit', 
+            'date_embauche', 'anciennete', 
+            'statut', 'date_sortie', 'en_poste', 
+            'creneau_travail', 'creneau_nom', 
+            'statut_actuel', 
+            'equipements', 'acces_applicatif', 'acces_locaux', 
+            'historique', 'horaires_supplementaires',
+            'date_creation', 'date_modification'
         ]
-        read_only_fields = [
-            'date_creation', 'date_modification', 'anciennete', 'statut_actuel'
-        ]
+        read_only_fields = ['date_creation', 'date_modification', 'anciennete', 'statut_actuel']
     
     def get_responsable_nom(self, obj):
         if obj.responsable_direct:
@@ -344,7 +349,10 @@ class SalarieDetailSerializer(serializers.ModelSerializer):
     
     def get_statut_actuel(self, obj):
         return obj.get_statut_actuel()
-
+    
+    def get_departements_list(self, obj):  # ✅ NOUVELLE MÉTHODE
+        """Retourne la liste des départements (numéro + nom)"""
+        return [f"{d.numero} - {d.nom}" for d in obj.departements.all()]
 
 # ============================================
 # SERIALIZER SALARIÉ LISTE
@@ -359,15 +367,28 @@ class SalarieListSerializer(serializers.ModelSerializer):
     jour_mois_naissance = serializers.CharField(read_only=True)
     statut_actuel = serializers.SerializerMethodField(read_only=True)
     anciennete = serializers.SerializerMethodField(read_only=True)
-    
+
     class Meta:
         model = Salarie
         fields = [
             'id', 'matricule', 'nom', 'prenom', 'genre', 'jour_mois_naissance',
+            'date_naissance',  # ✅ AJOUTÉ
+            'telephone',  # ✅ AJOUTÉ
             'service', 'service_nom', 'grade', 'grade_nom', 'poste',
             'mail_professionnel', 'telephone_professionnel', 'extension_3cx',
-            'statut', 'anciennete', 'statut_actuel', 'date_embauche'
+            'societe',  # ✅ AJOUTÉ (TRÈS IMPORTANT!)
+            'circuit',  # ✅ AJOUTÉ
+            'statut', 'anciennete', 'statut_actuel', 'date_embauche',
+            'en_poste',  # ✅ AJOUTÉ
+            'date_creation', 'date_modification'  # ✅ AJOUTÉ pour tracer
         ]
+
+    def get_anciennete(self, obj):
+        return obj.get_anciennete()
+
+    def get_statut_actuel(self, obj):
+        return obj.get_statut_actuel()
+
     
     def get_anciennete(self, obj):
         return obj.get_anciennete()

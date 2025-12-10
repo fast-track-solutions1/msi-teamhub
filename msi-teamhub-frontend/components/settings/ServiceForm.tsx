@@ -4,15 +4,17 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Service } from '@/lib/service-api';
 import { Societe } from '@/lib/societe-api';
+import { Salarie } from '@/lib/salarie-api';
 
 interface ServiceFormProps {
   service?: Service | null;
   societes: Societe[];
+  salaries: Salarie[];
   onSave: (data: Omit<Service, 'id' | 'date_creation' | 'responsable_info'> | Partial<Service>) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function ServiceForm({ service, societes, onSave, onCancel }: ServiceFormProps) {
+export default function ServiceForm({ service, societes, salaries, onSave, onCancel }: ServiceFormProps) {
   const [formData, setFormData] = useState({
     nom: service?.nom || '',
     societe: service?.societe || (societes.length > 0 ? societes[0].id : 0),
@@ -163,19 +165,26 @@ export default function ServiceForm({ service, societes, onSave, onCancel }: Ser
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Responsable
               </label>
-              <select
-                name="responsable"
-                value={formData.responsable || ''}
-                onChange={handleChange}
-                disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                <option value="">-- Aucun responsable --</option>
-                {/* TODO: Ajouter la liste des salariés quand disponible */}
-              </select>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                💡 Les salariés apparaîtront ici une fois créés
-              </p>
+<select
+  name="responsable"
+  value={formData.responsable || ''}
+  onChange={handleChange}
+  disabled={loading}
+  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
+>
+  <option value="">-- Aucun responsable --</option>
+  {salaries.map((salarie) => (
+    <option key={salarie.id} value={salarie.id}>
+      {salarie.prenom} {salarie.nom} ({salarie.matricule})
+    </option>
+  ))}
+</select>
+{salaries.length === 0 && (
+  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+    ⚠️ Aucun salarié disponible. Créez-en un d'abord.
+  </p>
+)}
+
             </div>
 
             {/* Actif */}

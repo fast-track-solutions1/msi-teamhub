@@ -184,7 +184,7 @@ class SalarieViewSet(viewsets.ModelViewSet):
     """ViewSet pour Salariés - Avec permissions granulaires"""
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['societe', 'service', 'grade', 'statut', 'departement']
+    filterset_fields = ['societe', 'service', 'grade', 'statut']
     search_fields = ['nom', 'prenom', 'matricule', 'mail_professionnel']
     ordering_fields = ['nom', 'prenom', 'date_embauche', 'date_creation']
     ordering = ['nom', 'prenom']
