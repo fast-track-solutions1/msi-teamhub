@@ -1,5 +1,4 @@
 // lib/societe-api.ts
-// Hook personnalisé pour gérer les requêtes API Sociétés
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -44,11 +43,9 @@ class SocieteApiClient {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-
     return headers;
   }
 
@@ -60,7 +57,6 @@ class SocieteApiClient {
     throw error;
   }
 
-  // ✅ LECTURE
   async getSocietes(limit = 100): Promise<Societe[]> {
     try {
       const response = await fetch(`${this.baseUrl}/?limit=${limit}`, {
@@ -74,8 +70,6 @@ class SocieteApiClient {
       }
 
       const data: ApiResponse<Societe> = await response.json();
-      
-      // ✅ Extraction des résultats paginés Django
       return data.results || [];
     } catch (error) {
       console.error('Erreur API (getSocietes):', error);
@@ -102,8 +96,7 @@ class SocieteApiClient {
     }
   }
 
-  // ✅ CRÉATION
-  async createSociete(societe: Omit<Societe, 'id' | 'date_creation'>): Promise<Societe> {
+  async createSociete(societe: Omit<Societe, 'id'>): Promise<Societe> {
     try {
       const response = await fetch(`${this.baseUrl}/`, {
         method: 'POST',
@@ -123,7 +116,6 @@ class SocieteApiClient {
     }
   }
 
-  // ✅ MODIFICATION
   async updateSociete(id: number, societe: Partial<Societe>): Promise<Societe> {
     try {
       const response = await fetch(`${this.baseUrl}/${id}/`, {
@@ -144,7 +136,6 @@ class SocieteApiClient {
     }
   }
 
-  // ✅ SUPPRESSION
   async deleteSociete(id: number): Promise<void> {
     try {
       const response = await fetch(`${this.baseUrl}/${id}/`, {
@@ -164,3 +155,10 @@ class SocieteApiClient {
 }
 
 export const societeApi = new SocieteApiClient();
+
+// ✅ Exports pour compatibilité
+export const getSocietes = (limit?: number) => societeApi.getSocietes(limit);
+export const getSocieteById = (id: number) => societeApi.getSocieteById(id);
+export const createSociete = (societe: Omit<Societe, 'id'>) => societeApi.createSociete(societe);
+export const updateSociete = (id: number, societe: Partial<Societe>) => societeApi.updateSociete(id, societe);
+export const deleteSociete = (id: number) => societeApi.deleteSociete(id);

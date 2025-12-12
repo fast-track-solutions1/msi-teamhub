@@ -53,12 +53,11 @@ export interface SalarieListResponse {
 }
 
 // Récupérer tous les salariés
-export const getSalaries = async (): Promise<Salarie[] | SalarieListResponse> => {
+export const getSalaries = async (): Promise<Salarie[]> => {
   try {
     const token = localStorage.getItem('access_token');
-
     if (!token) {
-      console.warn('⚠️  Aucun token trouvé, vérifiez votre authentification');
+      console.warn('⚠️ Aucun token trouvé, vérifiez votre authentification');
     }
 
     const url = `${API_BASE_URL}/salaries/`;
@@ -82,7 +81,10 @@ export const getSalaries = async (): Promise<Salarie[] | SalarieListResponse> =>
 
     const data = await response.json();
     console.log(`[getSalaries] ✅ Succès, ${Array.isArray(data) ? data.length : data.results?.length || 0} résultats`);
-    return data;
+    
+    // ✅ Toujours retourner un tableau
+    return Array.isArray(data) ? data : (data.results || []);
+    
   } catch (error: any) {
     console.error('[getSalaries] Erreur complète:', error);
     throw error;
@@ -94,7 +96,7 @@ export const getSalarie = async (id: number): Promise<Salarie> => {
   try {
     const token = localStorage.getItem('access_token');
     const url = `${API_BASE_URL}/salaries/${id}/`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -117,60 +119,94 @@ export const getSalarie = async (id: number): Promise<Salarie> => {
 };
 
 // Créer un salarié
-export const createSalarie = async (data: Partial<Salarie>): Promise<Salarie> => {
-  try {
-    const token = localStorage.getItem('access_token');
-    const url = `${API_BASE_URL}/salaries/`;
+export async function createSalarie(data: Omit<Salarie, 'id'> | FormData): Promise<Salarie> {
+  const token = localStorage.getItem('access_token');
 
-    const response = await fetch(url, {
+  // Déterminer si c'est du FormData ou du JSON
+  const isFormData = data instanceof FormData;
+
+  const headers: HeadersInit = {
+    'Authorization': `Bearer ${token}`,
+  };
+
+  // Si ce n'est pas FormData, ajouter Content-Type JSON
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/salaries/`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      headers,
+      body: isFormData ? data : JSON.stringify(data),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[createSalarie] Erreur ${response.status}:`, errorText);
-      throw new Error(`Erreur ${response.status}: Impossible de créer le salarié`);
+
+      // Parser l'erreur pour affichage
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = errorText;
+      }
+
+      throw { response: { data: errorData }, message: `Erreur ${response.status}` };
     }
 
     return await response.json();
   } catch (error: any) {
-    console.error('[createSalarie] Erreur:', error.message);
+    console.error('[createSalarie] Exception:', error);
     throw error;
   }
-};
+}
 
 // Mettre à jour un salarié
-export const updateSalarie = async (id: number, data: Partial<Salarie>): Promise<Salarie> => {
-  try {
-    const token = localStorage.getItem('access_token');
-    const url = `${API_BASE_URL}/salaries/${id}/`;
+export async function updateSalarie(id: number, data: Partial<Salarie> | FormData): Promise<Salarie> {
+  const token = localStorage.getItem('access_token');
 
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+  // Déterminer si c'est du FormData ou du JSON
+  const isFormData = data instanceof FormData;
+
+  const headers: HeadersInit = {
+    'Authorization': `Bearer ${token}`,
+  };
+
+  // Si ce n'est pas FormData, ajouter Content-Type JSON
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/salaries/${id}/`, {
+      method: 'PUT',
+      headers,
+      body: isFormData ? data : JSON.stringify(data),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[updateSalarie] Erreur ${response.status}:`, errorText);
-      throw new Error(`Erreur ${response.status}: Impossible de mettre à jour le salarié`);
+
+      // Parser l'erreur pour affichage
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = errorText;
+      }
+
+      throw { response: { data: errorData }, message: `Erreur ${response.status}` };
     }
 
     return await response.json();
   } catch (error: any) {
-    console.error('[updateSalarie] Erreur:', error.message);
+    console.error('[updateSalarie] Exception:', error);
     throw error;
   }
-};
+}
 
 // Supprimer un salarié
 export const deleteSalarie = async (id: number): Promise<void> => {

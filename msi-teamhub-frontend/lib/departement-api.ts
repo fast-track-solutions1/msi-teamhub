@@ -194,3 +194,9 @@ class DepartementApiClient {
 }
 
 export const departementApi = new DepartementApiClient();
+// ✅ Exports pour compatibilité
+export const getDepartements = (params?: any) => departementApi.getDepartements(params);
+export const getDepartementById = (id: number) => departementApi.getDepartementById(id);
+export const createDepartement = (departement: any) => departementApi.createDepartement(departement);
+export const updateDepartement = (id: number, departement: any) => departementApi.updateDepartement(id, departement);
+export const deleteDepartement = (id: number) => departementApi.deleteDepartement(id);

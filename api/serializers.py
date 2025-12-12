@@ -182,7 +182,7 @@ class SalarieSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'nom', 'prenom', 'matricule', 'genre',
             'date_naissance', 'telephone', 'mail_professionnel',
-            'telephone_professionnel', 'extension_3cx', 'societe',
+            'telephone_professionnel', 'extension_3cx', 'photo', 'societe',
             'service', 'grade', 'responsable_direct', 'poste',
             'departements', 'circuit', 'date_embauche', 'statut',
             'date_sortie', 'en_poste', 'creneau_travail',
@@ -321,7 +321,7 @@ class SalarieDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'nom', 'prenom', 'matricule', 'genre', 
             'date_naissance', 'jour_mois_naissance', 'telephone', 
-            'mail_professionnel', 'telephone_professionnel', 'extension_3cx',
+            'mail_professionnel', 'telephone_professionnel', 'extension_3cx', 'photo',
             'societe', 'societe_nom', 
             'service', 'service_nom', 
             'grade', 'grade_nom', 
@@ -375,7 +375,7 @@ class SalarieListSerializer(serializers.ModelSerializer):
             'date_naissance',  # ✅ AJOUTÉ
             'telephone',  # ✅ AJOUTÉ
             'service', 'service_nom', 'grade', 'grade_nom', 'poste',
-            'mail_professionnel', 'telephone_professionnel', 'extension_3cx',
+            'mail_professionnel', 'telephone_professionnel', 'extension_3cx', 'photo',
             'societe',  # ✅ AJOUTÉ (TRÈS IMPORTANT!)
             'circuit',  # ✅ AJOUTÉ
             'statut', 'anciennete', 'statut_actuel', 'date_embauche',

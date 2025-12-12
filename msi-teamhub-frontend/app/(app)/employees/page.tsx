@@ -6,12 +6,13 @@ import { Salarie, salarieApi } from '@/lib/salarie-api';
 import { Societe, societeApi } from '@/lib/societe-api';
 import { Service, serviceApi } from '@/lib/service-api';
 import { Grade, gradeApi } from '@/lib/grade-api';
-import { getDepartements, getCreneauxTravail, getSalariesForResponsable } from '@/lib/api-config';
+import { getDepartements, getCreneauxTravail } from '@/lib/api-config';  // ✅ NOUVEAU IMPORT
 import SalarieForm from '@/components/employees/SalarieForm';
 import SalarieTable from '@/components/employees/SalarieTable';
 import SalarieStats from '@/components/employees/SalarieStats';
+import { getSalariesForResponsable } from '@/lib/api-config';
 
-// Interfaces pour les données supplémentaires
+// ✅ AJOUTÉES - Interfaces pour les données supplémentaires
 interface Departement {
   id: number;
   numero: string;
@@ -24,15 +25,6 @@ interface CreneauTravail {
   nom: string;
 }
 
-interface SalarieForResponsable {
-  id: number;
-  nom: string;
-  prenom: string;
-  matricule: string;
-  service_nom?: string;
-  grade_nom?: string;
-}
-
 export default function EmployeesPage() {
   // États principaux
   const [salaries, setSalaries] = useState<Salarie[]>([]);
@@ -40,10 +32,9 @@ export default function EmployeesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   
-  // États pour les données supplémentaires
+  // ✅ AJOUTÉS - États pour les nouvelles données
   const [departements, setDepartements] = useState<Departement[]>([]);
   const [creneauxTravail, setCreneauxTravail] = useState<CreneauTravail[]>([]);
-  const [salariesForResponsable, setSalariesForResponsable] = useState<SalarieForResponsable[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,13 +58,13 @@ export default function EmployeesPage() {
     setMounted(true);
   }, []);
 
-  // ✅ FONCTION PRINCIPALE DE CHARGEMENT
+  // ✅ MODIFIÉE - Fonction de chargement avec gestion d'erreur et nouvelles données
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // ✅ 1️⃣ CHARGER LES DONNÉES PRINCIPALES
+      // Charger les données principales
       const [salariesData, societesData, servicesData, gradesData] = await Promise.all([
         salarieApi.getSalaries(),
         societeApi.getSocietes(),
@@ -86,42 +77,20 @@ export default function EmployeesPage() {
       setServices(servicesData);
       setGrades(gradesData);
 
-      // ✅ 2️⃣ CHARGER LES DONNÉES SUPPLÉMENTAIRES (optionnel - ne bloque pas si erreur)
+      // ✅ Charger les données supplémentaires (optionnel)
       try {
         const [departementsData, creneauxData] = await Promise.all([
-          getDepartements(),
-          getCreneauxTravail(),
+          getDepartements(),  // ✅ MODIFIÉ - Utiliser la fonction
+          getCreneauxTravail(),  // ✅ MODIFIÉ - Utiliser la fonction
         ]);
         
         setDepartements(departementsData.results || departementsData);
         setCreneauxTravail(creneauxData.results || creneauxData);
       } catch (err: any) {
-        console.warn('⚠️ Données supplémentaires (depts/creneaux) non disponibles:', err.message);
+        console.warn('⚠️ Données supplémentaires non disponibles:', err.message);
         setDepartements([]);
         setCreneauxTravail([]);
       }
-
-      // ✅ 3️⃣ CHARGER LES SALARIÉS POUR LA SÉLECTION DU RESPONSABLE DIRECT
-      try {
-        const responsablesData = await getSalariesForResponsable();
-        
-        // Formater les données pour le dropdown
-        const formatted = responsablesData.map((s: any) => ({
-          id: s.id,
-          nom: s.nom,
-          prenom: s.prenom,
-          matricule: s.matricule,
-          service_nom: s.service_nom || undefined,
-          grade_nom: s.grade_nom || undefined,
-        }));
-        
-        setSalariesForResponsable(formatted);
-        console.log('✅ Salariés pour Responsable Direct chargés:', formatted.length);
-      } catch (err: any) {
-        console.warn('⚠️ Salariés pour Responsable Direct non disponibles:', err.message);
-        setSalariesForResponsable([]);
-      }
-
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement des données');
       console.error(err);
@@ -247,7 +216,7 @@ export default function EmployeesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[95%] 2xl:max-w-[1800px] mx-auto">
         {/* En-tête */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -409,23 +378,21 @@ export default function EmployeesPage() {
             )}
           </>
         ) : (
-          // ✅ PASSER LES 3 PROPS AU FORMULAIRE
+          // ✅ MODIFIÉ - Passer les 2 nouvelles props
           <SalarieForm
-            salarie={editingSalarie}
-            societes={societes}
-            services={services}
-            grades={grades}
-            departements={departements}
-            creneauxTravail={creneauxTravail}
-            salariesForResponsable={salariesForResponsable}
-            onSave={(data) =>
-              editingSalarie ? handleUpdate(editingSalarie.id, data) : handleCreate(data as Omit<Salarie, 'id'>)
-            }
-            onCancel={() => {
-              setShowForm(false);
-              setEditingSalarie(null);
-            }}
-          />
+          salarie={editingSalarie}
+          societes={societes}
+          services={services}
+          grades={grades}
+          departements={departements}
+          creneauxTravail={creneauxTravail}
+          salariesForResponsable={salaries} // ✅ Utilise la liste complète des salariés
+          onSave={data => editingSalarie ? handleUpdate(editingSalarie.id, data) : handleCreate(data as OmitSalarie<Salarie, 'id'>)}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingSalarie(null);
+          }}
+        />
         )}
       </div>
     </div>

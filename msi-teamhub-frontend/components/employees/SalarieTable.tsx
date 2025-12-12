@@ -33,6 +33,12 @@ export default function SalarieTable({
   const getServiceName = (id: number | null) => services.find((s) => s.id === id)?.nom || 'N/A';
   const getGradeName = (id: number | null) => grades.find((g) => g.id === id)?.nom || 'N/A';
 
+  // ✅ NOUVEAU - Générer initiales
+  const getInitials = (nom: string, prenom: string) => {
+    if (!nom && !prenom) return '?';
+    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
+  };
+
   const getStatusColor = (statut: string) => {
     const colors: { [key: string]: string } = {
       actif: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700',
@@ -62,113 +68,133 @@ export default function SalarieTable({
   const SortButton = ({ field, label }: { field: 'nom' | 'prenom' | 'matricule' | 'date_embauche'; label: string }) => (
     <button
       onClick={() => onSort(field)}
-      className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition"
+      className="flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
     >
-      {label}
-      {sortField === field && (sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+      <span>{label}</span>
+      {sortField === field && (
+        sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+      )}
     </button>
   );
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <SortButton field="nom" label="Nom" />
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <SortButton field="prenom" label="Prénom" />
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <SortButton field="matricule" label="Matricule" />
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Société
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Service
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Grade
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Statut
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <SortButton field="date_embauche" label="Embauche" />
-              </th>
-              <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Actions
-              </th>
+    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <table className="w-full border-collapse bg-white dark:bg-slate-900">
+        <thead>
+          <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Photo
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <SortButton field="nom" label="Nom" />
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <SortButton field="prenom" label="Prénom" />
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <SortButton field="matricule" label="Matricule" />
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Société
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Service
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Grade
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Statut
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <SortButton field="date_embauche" label="Date embauche" />
+            </th>
+            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+          {salaries.length === 0 ? (
+            <tr>
+              <td colSpan={10} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                Aucun salarié trouvé
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-            {salaries.map((salarie) => (
+          ) : (
+            salaries.map((salarie) => (
               <tr
                 key={salarie.id}
-                className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
               >
-                <td className="px-6 py-4 text-sm text-slate-900 dark:text-white font-medium">
+                {/* ✅ NOUVEAU - Colonne Photo */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {salarie.photo ? (
+                    <img
+                      src={salarie.photo}
+                      alt={`${salarie.prenom} ${salarie.nom}`}
+                      className="h-10 w-10 rounded-full object-cover border-2 border-blue-500 shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                      {getInitials(salarie.nom, salarie.prenom)}
+                    </div>
+                  )}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {salarie.nom}
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                   {salarie.prenom}
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-900 dark:text-white font-mono text-xs bg-slate-50 dark:bg-slate-700/50 py-1 px-3 rounded w-fit">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-600 dark:text-slate-400">
                   {salarie.matricule}
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                   {getSocieteName(salarie.societe)}
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                   {getServiceName(salarie.service)}
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                   {getGradeName(salarie.grade)}
                 </td>
-                <td className="px-6 py-4 text-sm">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(salarie.statut)}`}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(salarie.statut)}`}>
                     {formatStatut(salarie.statut)}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                   {new Date(salarie.date_embauche).toLocaleDateString('fr-FR', {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
                   })}
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => onEdit(salarie)}
-                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                      className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
                       title="Modifier"
                     >
-                      <Edit2 size={18} />
+                      <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onDelete(salarie.id)}
-                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                       title="Supprimer"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {salaries.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-slate-500 dark:text-slate-400">Aucun salarié trouvé</p>
-        </div>
-      )}
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

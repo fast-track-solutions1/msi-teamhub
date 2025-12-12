@@ -1,4 +1,5 @@
 // lib/service-api.ts
+
 // API Client pour gérer les Services
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -41,11 +42,9 @@ class ServiceApiClient {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-
     return headers;
   }
 
@@ -61,12 +60,10 @@ class ServiceApiClient {
   async getServices(params?: { societe?: number; actif?: boolean; search?: string; ordering?: string }): Promise<Service[]> {
     try {
       const queryParams = new URLSearchParams();
-      
       if (params?.societe) queryParams.append('societe', params.societe.toString());
       if (params?.actif !== undefined) queryParams.append('actif', params.actif.toString());
       if (params?.search) queryParams.append('search', params.search);
       if (params?.ordering) queryParams.append('ordering', params.ordering);
-      
       queryParams.append('limit', '100');
 
       const url = `${this.baseUrl}/?${queryParams.toString()}`;
@@ -108,7 +105,7 @@ class ServiceApiClient {
   }
 
   // ✅ CRÉATION
-  async createService(service: Omit<Service, 'id' | 'date_creation' | 'responsable_info'>): Promise<Service> {
+  async createService(service: Omit<Service, 'id'>): Promise<Service> {
     try {
       const response = await fetch(`${this.baseUrl}/`, {
         method: 'POST',
@@ -168,4 +165,12 @@ class ServiceApiClient {
   }
 }
 
+// ✅ D'ABORD créer l'instance
 export const serviceApi = new ServiceApiClient();
+
+// ✅ ENSUITE les exports pour compatibilité
+export const getServices = (params?: any) => serviceApi.getServices(params);
+export const getServiceById = (id: number) => serviceApi.getServiceById(id);
+export const createService = (service: Omit<Service, 'id'>) => serviceApi.createService(service);
+export const updateService = (id: number, service: Partial<Service>) => serviceApi.updateService(id, service);
+export const deleteService = (id: number) => serviceApi.deleteService(id);

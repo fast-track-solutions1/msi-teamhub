@@ -1,4 +1,5 @@
 // lib/grade-api.ts
+
 // API Client pour gérer les Grades
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -40,11 +41,9 @@ class GradeApiClient {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-
     return headers;
   }
 
@@ -60,12 +59,10 @@ class GradeApiClient {
   async getGrades(params?: { societe?: number; actif?: boolean; search?: string; ordering?: string }): Promise<Grade[]> {
     try {
       const queryParams = new URLSearchParams();
-      
       if (params?.societe) queryParams.append('societe', params.societe.toString());
       if (params?.actif !== undefined) queryParams.append('actif', params.actif.toString());
       if (params?.search) queryParams.append('search', params.search);
       if (params?.ordering) queryParams.append('ordering', params.ordering);
-      
       queryParams.append('limit', '100');
 
       const url = `${this.baseUrl}/?${queryParams.toString()}`;
@@ -107,7 +104,7 @@ class GradeApiClient {
   }
 
   // ✅ CRÉATION
-  async createGrade(grade: Omit<Grade, 'id' | 'date_creation' | 'societe_nom'>): Promise<Grade> {
+  async createGrade(grade: Omit<Grade, 'id'>): Promise<Grade> {
     try {
       const response = await fetch(`${this.baseUrl}/`, {
         method: 'POST',
@@ -167,4 +164,12 @@ class GradeApiClient {
   }
 }
 
+// ✅ D'ABORD créer l'instance
 export const gradeApi = new GradeApiClient();
+
+// ✅ ENSUITE les exports pour compatibilité
+export const getGrades = (params?: any) => gradeApi.getGrades(params);
+export const getGradeById = (id: number) => gradeApi.getGradeById(id);
+export const createGrade = (grade: Omit<Grade, 'id'>) => gradeApi.createGrade(grade);
+export const updateGrade = (id: number, grade: Partial<Grade>) => gradeApi.updateGrade(id, grade);
+export const deleteGrade = (id: number) => gradeApi.deleteGrade(id);

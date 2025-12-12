@@ -324,6 +324,7 @@ class Salarie(models.Model):
     mail_professionnel = models.EmailField(null=True, blank=True)
     telephone_professionnel = models.CharField(max_length=20, null=True, blank=True)
     extension_3cx = models.CharField(max_length=10, null=True, blank=True)
+    photo = models.ImageField(upload_to='salaries/photos/', null=True, blank=True)
 
     # Infos professionnelles
     societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='salaries')
