@@ -315,3 +315,4 @@ class SalarieApi {
 // ============================================================================
 
 export const salarieApi = new SalarieApi();
+export const getSalaries = () => salarieApi.getSalaries();

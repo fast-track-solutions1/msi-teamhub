@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Briefcase, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
-import { getServices } from '@/lib/service-api';
+import { Search, Filter, MapPin, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
+import { getDepartements } from '@/lib/departement-api';
 import { getSocietes } from '@/lib/societe-api';
 import { getSalaries } from '@/lib/salarie-api';
-import ServiceDirectoryTable from './components/ServiceDirectoryTable';
-import ServiceDirectoryDetailModal from './components/ServiceDirectoryDetailModal';
-import ServiceDirectoryStats from './components/ServiceDirectoryStats';
-import { Service } from '@/lib/service-api';
+import DepartmentDirectoryTable from './components/DepartmentDirectoryTable';
+import DepartmentDirectoryDetailModal from './components/DepartmentDirectoryDetailModal';
+import DepartmentDirectoryStats from './components/DepartmentDirectoryStats';
+import { Departement } from '@/lib/departement-api';
 import { Societe } from '@/lib/societe-api';
 import { Salarie } from '@/lib/salarie-api';
 
-export default function AnnuaireServicesPage() {
-  const [services, setServices] = useState<Service[]>([]);
+export default function AnnuaireDepartementsPage() {
+  const [departements, setDepartements] = useState<Departement[]>([]);
   const [societes, setSocietes] = useState<Societe[]>([]);
   const [salaries, setSalaries] = useState<Salarie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,11 +23,11 @@ export default function AnnuaireServicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSociete, setSelectedSociete] = useState<number | null>(null);
   const [selectedStatut, setSelectedStatut] = useState<'all' | 'actif' | 'inactif'>('all');
-  const [sortField, setSortField] = useState<'nom' | 'description' | 'date_creation'>('nom');
+  const [sortField, setSortField] = useState<'numero' | 'nom' | 'nombre_circuits' | 'date_creation'>('nom');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // 🎯 Modal
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedDept, setSelectedDept] = useState<Departement | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 📡 Chargement des données
@@ -37,13 +37,13 @@ export default function AnnuaireServicesPage() {
         setLoading(true);
         setError(null);
 
-        const [servicesData, societeData, salariesData] = await Promise.all([
-          getServices(),
+        const [deptsData, societeData, salariesData] = await Promise.all([
+          getDepartements(),
           getSocietes(),
           getSalaries(),
         ]);
 
-        setServices(servicesData);
+        setDepartements(deptsData);
         setSocietes(societeData);
         setSalaries(salariesData);
       } catch (err: any) {
@@ -60,27 +60,29 @@ export default function AnnuaireServicesPage() {
   }, []);
 
   // 🔄 Filtrage et tri
-  const filteredAndSortedServices = useMemo(() => {
-    let result = [...services];
+  const filteredAndSortedDepartements = useMemo(() => {
+    let result = [...departements];
 
     // Filtre par recherche
     if (searchQuery) {
       result = result.filter(
-        (s) =>
-          s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        (d) =>
+          d.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.numero.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.chef_lieu?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     // Filtre par société
     if (selectedSociete) {
-      result = result.filter((s) => s.societe === selectedSociete);
+      result = result.filter((d) => d.societe === selectedSociete);
     }
 
     // Filtre par statut
     if (selectedStatut !== 'all') {
-      result = result.filter((s) =>
-        selectedStatut === 'actif' ? s.actif : !s.actif
+      result = result.filter((d) =>
+        selectedStatut === 'actif' ? d.actif : !d.actif
       );
     }
 
@@ -90,11 +92,14 @@ export default function AnnuaireServicesPage() {
       let bVal: any;
 
       switch (sortField) {
+        case 'numero':
+          aVal = a.numero.localeCompare(b.numero);
+          break;
         case 'nom':
           aVal = a.nom.localeCompare(b.nom);
           break;
-        case 'description':
-          aVal = (a.description || '').localeCompare(b.description || '');
+        case 'nombre_circuits':
+          aVal = a.nombre_circuits - b.nombre_circuits;
           break;
         case 'date_creation':
           aVal = new Date(a.date_creation).getTime() - new Date(b.date_creation).getTime();
@@ -107,17 +112,17 @@ export default function AnnuaireServicesPage() {
     });
 
     return result;
-  }, [services, searchQuery, selectedSociete, selectedStatut, sortField, sortOrder]);
+  }, [departements, searchQuery, selectedSociete, selectedStatut, sortField, sortOrder]);
 
-  // 🎯 Gestion du clic sur un service
-  const handleServiceClick = (service: Service) => {
-    setSelectedService(service);
+  // 🎯 Gestion du clic sur un département
+  const handleDeptClick = (dept: Departement) => {
+    setSelectedDept(dept);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedService(null);
+    setSelectedDept(null);
   };
 
   return (
@@ -127,15 +132,15 @@ export default function AnnuaireServicesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
-                <Briefcase className="h-6 w-6" />
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                <MapPin className="h-6 w-6" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                  Annuaire des Services
+                  Annuaire des Départements
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Consultez la liste complète des services de l'entreprise
+                  Consultez la liste complète des départements de l'entreprise
                 </p>
               </div>
             </div>
@@ -144,19 +149,19 @@ export default function AnnuaireServicesPage() {
       </div>
 
       {/* 📊 Section Statistiques */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!loading && (
-          <ServiceDirectoryStats
-            services={services}
+          <DepartmentDirectoryStats
+            departements={departements}
             societes={societes}
-            salaries={salaries}
           />
         )}
       </div>
 
-      {/* 🔍 Section Filtres */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+      {/* 🎯 Section Listing avec filtres */}
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* 🔍 Filtres */}
+        <div className="max-w-7xl mx-auto bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="h-5 w-5 text-slate-600 dark:text-slate-400" />
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -174,10 +179,10 @@ export default function AnnuaireServicesPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Nom, description..."
+                  placeholder="Nom, numéro, région..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                 />
               </div>
             </div>
@@ -193,7 +198,7 @@ export default function AnnuaireServicesPage() {
                   onChange={(e) =>
                     setSelectedSociete(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 appearance-none pr-10"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 appearance-none pr-10"
                 >
                   <option value="">Toutes les sociétés</option>
                   {societes.map((s) => (
@@ -217,7 +222,7 @@ export default function AnnuaireServicesPage() {
                   onChange={(e) =>
                     setSelectedStatut(e.target.value as 'all' | 'actif' | 'inactif')
                   }
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 appearance-none pr-10"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 appearance-none pr-10"
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="actif">Actifs</option>
@@ -238,13 +243,14 @@ export default function AnnuaireServicesPage() {
                     value={sortField}
                     onChange={(e) =>
                       setSortField(
-                        e.target.value as 'nom' | 'description' | 'date_creation'
+                        e.target.value as 'numero' | 'nom' | 'nombre_circuits' | 'date_creation'
                       )
                     }
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 appearance-none pr-10"
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 appearance-none pr-10"
                   >
                     <option value="nom">Nom</option>
-                    <option value="description">Description</option>
+                    <option value="numero">Numéro</option>
+                    <option value="nombre_circuits">Circuits</option>
                     <option value="date_creation">Date création</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -263,10 +269,10 @@ export default function AnnuaireServicesPage() {
           {/* Résumé des filtres */}
           <div className="mt-4 flex flex-wrap gap-2 items-center text-sm">
             <span className="text-slate-600 dark:text-slate-400">
-              <strong>{filteredAndSortedServices.length}</strong> service
-              {filteredAndSortedServices.length !== 1 ? 's' : ''} trouvé
-              {filteredAndSortedServices.length !== 1 ? 's' : ''} sur{' '}
-              <strong>{services.length}</strong> total
+              <strong>{filteredAndSortedDepartements.length}</strong> département
+              {filteredAndSortedDepartements.length !== 1 ? 's' : ''} trouvé
+              {filteredAndSortedDepartements.length !== 1 ? 's' : ''} sur{' '}
+              <strong>{departements.length}</strong> total
             </span>
             {(searchQuery || selectedSociete || selectedStatut !== 'all') && (
               <button
@@ -275,27 +281,23 @@ export default function AnnuaireServicesPage() {
                   setSelectedSociete(null);
                   setSelectedStatut('all');
                 }}
-                className="text-purple-600 dark:text-purple-400 hover:underline text-xs"
+                className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
               >
                 Réinitialiser les filtres
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* ⚠️ États de chargement et erreur */}
-      {loading && (
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        {/* ⚠️ États de chargement et erreur */}
+        {loading && (
           <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-10 w-10 animate-spin text-purple-500 mb-4" />
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
             <p className="text-slate-600 dark:text-slate-400">Chargement des données...</p>
           </div>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        {error && (
           <div className="rounded-lg bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-300 flex-shrink-0 mt-0.5" />
             <div>
@@ -303,40 +305,35 @@ export default function AnnuaireServicesPage() {
               <p className="text-sm text-red-700 dark:text-red-200 mt-1">{error}</p>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 📋 TABLE DES SERVICES - FULL WIDTH */}
-      {!loading && !error && (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+        {/* 📋 Table des départements - FULL WIDTH */}
+        {!loading && !error && (
           <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <ServiceDirectoryTable
-              services={filteredAndSortedServices}
+            <DepartmentDirectoryTable
+              departements={filteredAndSortedDepartements}
               societes={societes}
-              salaries={salaries}
-              onServiceClick={handleServiceClick}
+              onDepartmentClick={handleDeptClick}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {!loading && !error && filteredAndSortedServices.length === 0 && (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+        {!loading && !error && filteredAndSortedDepartements.length === 0 && (
           <div className="rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-12 text-center">
-            <Briefcase className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
+            <MapPin className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              Aucun service trouvé
+              Aucun département trouvé
             </h3>
             <p className="text-slate-500 dark:text-slate-400">
               Essayez de modifier vos filtres de recherche
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 🎯 Modal détails */}
-      <ServiceDirectoryDetailModal
-        service={selectedService}
+      <DepartmentDirectoryDetailModal
+        departement={selectedDept}
         societes={societes}
         salaries={salaries}
         isOpen={isModalOpen}
