@@ -70,6 +70,16 @@ class Service(models.Model):
     societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='services')
     description = models.TextField(null=True, blank=True)
     responsable = models.ForeignKey('Salarie', on_delete=models.SET_NULL, null=True, blank=True, related_name='services_responsable')
+    
+    # ← AJOUTER CES 5 LIGNES :
+    parentservice = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sousservices'
+    )
+    
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
 
@@ -80,6 +90,7 @@ class Service(models.Model):
 
     def __str__(self):
         return f"{self.nom} ({self.societe.nom})"
+
 
 
 class Grade(models.Model):

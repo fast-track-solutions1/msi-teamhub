@@ -448,7 +448,7 @@ export const menuConfig: MenuItem[] = [
           {
             id: 'admin-fiches',
             label: 'Fiches de postes',
-            href: '/admin/parametres/fiches',
+            href: '/settings/fiches',
             icon: FileText,
             roles: ['admin'],
           },

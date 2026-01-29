@@ -330,6 +330,7 @@ export default function ServicesPage() {
                 service={editingService}
                 societes={societes}
                 salaries={salaries}
+                services={services}
                 onSave={handleSaveService}
                 onCancel={() => {
                   setShowForm(false);

@@ -10,37 +10,48 @@ interface ServiceFormProps {
   service?: Service | null;
   societes: Societe[];
   salaries: Salarie[];
-  onSave: (data: Omit<Service, 'id' | 'date_creation' | 'responsable_info'> | Partial<Service>) => Promise<void>;
+  services: Service[];  // ← AJOUTER CETTE PROP
+  onSave: (data: Omit<Service, 'id' | 'date_creation' | 'responsable_info'>) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function ServiceForm({ service, societes, salaries, onSave, onCancel }: ServiceFormProps) {
+export default function ServiceForm({
+  service,
+  societes,
+  salaries,
+  services,  // ← UTILISER CETTE PROP
+  onSave,
+  onCancel,
+}: ServiceFormProps) {
   const [formData, setFormData] = useState({
     nom: service?.nom || '',
     societe: service?.societe || (societes.length > 0 ? societes[0].id : 0),
     description: service?.description || '',
     responsable: service?.responsable || undefined,
+    parentservice: service?.parentservice || undefined,
     actif: service?.actif ?? true,
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
 
     if (type === 'checkbox') {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: (e.target as HTMLInputElement).checked,
       }));
-    } else if (name === 'societe' || name === 'responsable') {
-      setFormData((prev) => ({
+    } else if (name === 'societe' || name === 'responsable' || name === 'parentservice') {
+      setFormData(prev => ({
         ...prev,
         [name]: value ? Number(value) : undefined,
       }));
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: value,
       }));
@@ -51,12 +62,11 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
     e.preventDefault();
     setError(null);
 
-    // ✅ Validation
+    // Validation
     if (!formData.nom.trim()) {
       setError('Le nom est obligatoire');
       return;
     }
-
     if (!formData.societe) {
       setError('La société est obligatoire');
       return;
@@ -74,8 +84,8 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* 🎯 En-tête */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-2xl w-full max-h-90vh overflow-y-auto">
+        {/* En-tête */}
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             {service ? 'Modifier le service' : 'Ajouter un service'}
@@ -89,21 +99,21 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
           </button>
         </div>
 
-        {/* 📝 Formulaire */}
+        {/* Formulaire */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* ❌ Erreur */}
+          {/* Erreur */}
           {error && (
             <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
               <p className="text-red-900 dark:text-red-200 font-medium">{error}</p>
             </div>
           )}
 
-          {/* 🎯 Champs du formulaire */}
+          {/* Champs du formulaire */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Nom (obligatoire) */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Nom du service *
+                Nom du service
               </label>
               <input
                 type="text"
@@ -117,10 +127,36 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
               />
             </div>
 
+            {/* Service Parent (optionnel) */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Service Parent (optionnel)
+              </label>
+              <select
+                name="parentservice"
+                value={formData.parentservice || ''}
+                onChange={handleChange}
+                disabled={loading}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <option value="">-- Aucun (service racine) --</option>
+                {/* ← AFFICHER LA LISTE DES SERVICES */}
+                {services && services.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.nom}
+                  </option>
+                ))}
+                {/* ← FIN */}
+              </select>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Sélectionnez un service parent si ce service dépend d'un autre
+              </p>
+            </div>
+
             {/* Société (obligatoire) */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Société *
+                Société
               </label>
               <select
                 name="societe"
@@ -131,7 +167,7 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
                 className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <option value="">-- Sélectionnez une société --</option>
-                {societes.map((societe) => (
+                {societes.map(societe => (
                   <option key={societe.id} value={societe.id}>
                     {societe.nom}
                   </option>
@@ -139,7 +175,7 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
               </select>
               {societes.length === 0 && (
                 <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                  ⚠️ Aucune société disponible. Créez-en une d'abord.
+                  Aucune société disponible. Créez-en une d'abord.
                 </p>
               )}
             </div>
@@ -160,31 +196,30 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
               />
             </div>
 
-            {/* Responsable (optionnel - pour plus tard quand salariés seront créés) */}
+            {/* Responsable (optionnel) */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Responsable
               </label>
-<select
-  name="responsable"
-  value={formData.responsable || ''}
-  onChange={handleChange}
-  disabled={loading}
-  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
->
-  <option value="">-- Aucun responsable --</option>
-  {salaries.map((salarie) => (
-    <option key={salarie.id} value={salarie.id}>
-      {salarie.prenom} {salarie.nom} ({salarie.matricule})
-    </option>
-  ))}
-</select>
-{salaries.length === 0 && (
-  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-    ⚠️ Aucun salarié disponible. Créez-en un d'abord.
-  </p>
-)}
-
+              <select
+                name="responsable"
+                value={formData.responsable || ''}
+                onChange={handleChange}
+                disabled={loading}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <option value="">-- Aucun responsable --</option>
+                {salaries.map(salarie => (
+                  <option key={salarie.id} value={salarie.id}>
+                    {salarie.prenom} {salarie.nom} ({salarie.matricule})
+                  </option>
+                ))}
+              </select>
+              {salaries.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Aucun salarié disponible. Créez-en un d'abord.
+                </p>
+              )}
             </div>
 
             {/* Actif */}
@@ -198,22 +233,24 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
                 disabled={loading}
                 className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
               />
-              <label htmlFor="actif" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+              <label
+                htmlFor="actif"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
                 Service actif
               </label>
             </div>
           </div>
 
-          {/* 💡 Info */}
+          {/* Info */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
             <p className="text-sm text-blue-900 dark:text-blue-200">
-              <strong>💡 Astuce :</strong> Le nom du service doit être unique par société.
-              <br />
-              Exemple : "Ressources Humaines" ne peut exister qu'une seule fois dans la même société.
+              <strong>Astuce :</strong> Le nom du service doit être unique par société. <br />
+              Exemple : Ressources Humaines ne peut exister qu'une seule fois dans la même société.
             </p>
           </div>
 
-          {/* 🎯 Boutons d'action */}
+          {/* Boutons d'action */}
           <div className="flex gap-3 justify-end pt-6 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
@@ -223,7 +260,6 @@ export default function ServiceForm({ service, societes, salaries, onSave, onCan
             >
               Annuler
             </button>
-
             <button
               type="submit"
               disabled={loading || societes.length === 0}

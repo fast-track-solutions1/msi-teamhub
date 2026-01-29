@@ -67,6 +67,11 @@ export default function ServiceTable({
               <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
                 Responsable
               </th>
+              {/* ← AJOUT : Service Parent */}
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                Service Parent
+              </th>
+              {/* ← FIN AJOUT */}
               <th
                 onClick={() => onSort('date_creation')}
                 className="px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -129,6 +134,18 @@ export default function ServiceTable({
                     <span className="text-sm text-slate-400 italic">Aucun</span>
                   )}
                 </td>
+
+                {/* ← AJOUT : Service Parent */}
+                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                  {service.parentservice ? (
+                    <span className="text-sm text-slate-900 dark:text-white">
+                      Service #{service.parentservice}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-400 italic">Aucun</span>
+                  )}
+                </td>
+                {/* ← FIN AJOUT */}
 
                 {/* Date création */}
                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">

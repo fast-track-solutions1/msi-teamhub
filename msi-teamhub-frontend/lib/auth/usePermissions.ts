@@ -28,7 +28,10 @@ export const useUser = (): User | null => {
         console.log('🔍 Chargement utilisateur depuis API...');
 
         // Appelle ton endpoint Django
-        const response = await fetch('http://localhost:8000/api/me/', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const url = apiUrl.includes('/api') ? `${apiUrl}/me/` : `${apiUrl}/api/me/`;
+        const response = await fetch(url, {
+
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

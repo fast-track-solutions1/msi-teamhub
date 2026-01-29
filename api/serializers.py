@@ -66,7 +66,7 @@ class ServiceSerializer(serializers.ModelSerializer):
         model = Service
         fields = [
             'id', 'nom', 'societe', 'description', 'responsable',
-            'responsable_info', 'parent_service', 'actif', 'date_creation'
+            'responsable_info', 'parentservice', 'actif', 'date_creation'  # ← parentservice SANS underscore
         ]
         read_only_fields = ['date_creation']
     
@@ -563,6 +563,13 @@ class FichePosteDetailSerializer(serializers.ModelSerializer):
     service_nom = serializers.CharField(source='service.nom', read_only=True)
     grade_nom = serializers.CharField(source='grade.nom', read_only=True)
     responsable_info = serializers.SerializerMethodField(read_only=True)
+    
+    responsable_service = serializers.PrimaryKeyRelatedField(
+        queryset=Salarie.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    
     outils = OutilFichePosteSerializer(many=True, read_only=True)
     ameliorations = AmeliorationProposeeSerializer(many=True, read_only=True)
     

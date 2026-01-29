@@ -1,5 +1,6 @@
 'use client';
 
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,6 +15,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 
+
 // ✅ Imports corrigés - Utilisation des classes API
 import { salarieApi, Salarie } from '@/lib/salarie-api';
 import { societeApi, Societe } from '@/lib/societe-api';
@@ -22,24 +24,30 @@ import { gradeApi, Grade } from '@/lib/grade-api';
 import { getDepartements } from '@/lib/api-config';
 import { Departement } from '@/lib/departement-api';
 
+
 // Components
 import AnnuaireCard from './components/AnnuaireCard';
 import AnnuaireTable from './components/AnnuaireTable';
 import AnnuaireStats from './components/AnnuaireStats';
 
+
 type ViewType = 'cards' | 'table';
 type FilterValue = 'all' | number;
+
 
 export default function AnnuairePage() {
   const router = useRouter();
 
+
   // ==================== ÉTATS ====================
   // Données
+  const [allSalaries, setAllSalaries] = useState<Salarie[]>([]);
   const [salaries, setSalaries] = useState<Salarie[]>([]);
   const [societes, setSocietes] = useState<Societe[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [departements, setDepartements] = useState<Departement[]>([]);
+
 
   // UI
   const [loading, setLoading] = useState(true);
@@ -48,6 +56,7 @@ export default function AnnuairePage() {
   const [viewType, setViewType] = useState<ViewType>('table');
   const [showStats, setShowStats] = useState(false);
 
+
   // Filtres / recherche
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSociete, setFilterSociete] = useState<FilterValue>('all');
@@ -55,9 +64,11 @@ export default function AnnuairePage() {
   const [filterGrade, setFilterGrade] = useState<FilterValue>('all');
   const [filterStatut, setFilterStatut] = useState<string>('all');
 
+
   // Tri
   const [sortField, setSortField] = useState<'nom' | 'prenom' | 'matricule' | 'departement'>('nom');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
 
   // ==================== CHARGEMENT DONNÉES ====================
   const loadData = useCallback(async () => {
@@ -65,22 +76,33 @@ export default function AnnuairePage() {
       setLoading(true);
       setError(null);
 
+
+      // ✅ NOUVEAU: Charger TOUS les salariés (SANS filtre)
+      const allSalariesData = await salarieApi.getSalaries();
+      const allSalariesList = Array.isArray(allSalariesData) 
+        ? allSalariesData 
+        : allSalariesData.results || [];
+      
+      setAllSalaries(allSalariesList);
+      setSalaries(allSalariesList);
+      console.log('✅ Chargé', allSalariesList.length, 'salariés au total');
+
       // ✅ Appels API corrigés avec les méthodes des classes
-      const [salariesData, societesData, servicesData, gradesData, departementsData] =
+      const [societesData, servicesData, gradesData, departementsData] =
         await Promise.all([
-          salarieApi.getSalaries(),
           societeApi.getSocietes(),
           serviceApi.getServices(),
           gradeApi.getGrades(),
           getDepartements(),
         ]);
 
+
       // Normalisation des données
-      setSalaries(Array.isArray(salariesData) ? salariesData : salariesData.results || []);
       setSocietes(Array.isArray(societesData) ? societesData : societesData.results || []);
       setServices(Array.isArray(servicesData) ? servicesData : servicesData.results || []);
       setGrades(Array.isArray(gradesData) ? gradesData : gradesData.results || []);
       setDepartements(Array.isArray(departementsData) ? departementsData : departementsData.results || []);
+
 
       console.log('✅ Données chargées avec succès');
     } catch (err: any) {
@@ -92,10 +114,12 @@ export default function AnnuairePage() {
     }
   }, []);
 
+
   // ==================== EFFETS ====================
   useEffect(() => {
     setMounted(true);
   }, []);
+
 
   useEffect(() => {
     if (mounted) {
@@ -103,9 +127,11 @@ export default function AnnuairePage() {
     }
   }, [mounted, loadData]);
 
+
   // ==================== FILTRAGE ET TRI ====================
   const filteredAndSortedSalaries = useMemo(() => {
     let filtered = [...salaries];
+
 
     // Recherche
     if (searchTerm.trim()) {
@@ -120,26 +146,32 @@ export default function AnnuairePage() {
       );
     }
 
+
     // Filtres
     if (filterSociete !== 'all') {
       filtered = filtered.filter((s) => s.societe === filterSociete);
     }
 
+
     if (filterService !== 'all') {
       filtered = filtered.filter((s) => s.service === filterService);
     }
+
 
     if (filterGrade !== 'all') {
       filtered = filtered.filter((s) => s.grade === filterGrade);
     }
 
+
     if (filterStatut !== 'all') {
       filtered = filtered.filter((s) => s.statut === filterStatut);
     }
 
+
     // Tri
     filtered.sort((a, b) => {
       let comp = 0;
+
 
       switch (sortField) {
         case 'nom':
@@ -158,11 +190,14 @@ export default function AnnuairePage() {
           break;
       }
 
+
       return sortOrder === 'asc' ? comp : -comp;
     });
 
+
     return filtered;
   }, [salaries, searchTerm, filterSociete, filterService, filterGrade, filterStatut, sortField, sortOrder]);
+
 
   // ==================== HANDLERS ====================
   const handleExportCSV = useCallback(() => {
@@ -180,6 +215,7 @@ export default function AnnuairePage() {
       'Téléphone',
     ];
 
+
     const rows = filteredAndSortedSalaries.map((s) => [
       s.matricule,
       s.nom,
@@ -193,8 +229,8 @@ export default function AnnuairePage() {
       services.find((sv) => sv.id === s.service)?.nom || 'N/A',
       grades.find((g) => g.id === s.grade)?.nom || 'N/A',
       s.responsable_direct
-        ? `${salaries.find((x) => x.id === s.responsable_direct)?.prenom || ''} ${
-            salaries.find((x) => x.id === s.responsable_direct)?.nom || ''
+        ? `${allSalaries.find((x) => x.id === s.responsable_direct)?.prenom || ''} ${
+            allSalaries.find((x) => x.id === s.responsable_direct)?.nom || ''
           }`.trim() || 'N/A'
         : 'N/A',
       s.statut,
@@ -202,17 +238,20 @@ export default function AnnuairePage() {
       s.telephone || 'N/A',
     ]);
 
+
     const csv = [
       headers.join(','),
       ...rows.map((r) => r.map((c) => `"${c}"`).join(',')),
     ].join('\n');
+
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `annuaire_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-  }, [filteredAndSortedSalaries, departements, services, grades, salaries]);
+  }, [filteredAndSortedSalaries, departements, services, grades, allSalaries]);
+
 
   const handleSort = useCallback((field: 'nom' | 'prenom' | 'matricule' | 'departement') => {
     setSortField((prevField) => {
@@ -226,6 +265,7 @@ export default function AnnuairePage() {
     });
   }, []);
 
+
   const handleSalarieClick = useCallback(
     (id: number) => {
       router.push(`/annuaires/salaries/${id}`);
@@ -233,8 +273,10 @@ export default function AnnuairePage() {
     [router]
   );
 
+
   // ==================== RENDER CONDITIONS ====================
   if (!mounted) return null;
+
 
   const hasActiveFilters =
     searchTerm.trim() ||
@@ -242,6 +284,7 @@ export default function AnnuairePage() {
     filterService !== 'all' ||
     filterGrade !== 'all' ||
     filterStatut !== 'all';
+
 
   // ==================== RENDER ====================
   return (
@@ -259,6 +302,7 @@ export default function AnnuairePage() {
           </p>
         </div>
 
+
         <div className="flex gap-2">
           {/* Stats */}
           <button
@@ -274,6 +318,7 @@ export default function AnnuairePage() {
             Stats
           </button>
 
+
           {/* Export */}
           <button
             onClick={handleExportCSV}
@@ -284,6 +329,7 @@ export default function AnnuairePage() {
             <Download size={18} />
             Export
           </button>
+
 
           {/* Rafraîchir */}
           <button
@@ -298,6 +344,7 @@ export default function AnnuairePage() {
         </div>
       </div>
 
+
       {/* ==================== ERREUR ==================== */}
       {error && (
         <div className="flex gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
@@ -307,6 +354,7 @@ export default function AnnuairePage() {
           </div>
         </div>
       )}
+
 
       {/* ==================== RECHERCHE + FILTRES ==================== */}
       <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -322,6 +370,7 @@ export default function AnnuairePage() {
             aria-label="Rechercher un salarié"
           />
         </div>
+
 
         {/* Filtre Société */}
         <div className="relative">
@@ -341,6 +390,7 @@ export default function AnnuairePage() {
           </select>
         </div>
 
+
         {/* Filtre Service */}
         <select
           value={filterService}
@@ -355,6 +405,7 @@ export default function AnnuairePage() {
             </option>
           ))}
         </select>
+
 
         {/* Filtre Grade */}
         <select
@@ -371,6 +422,7 @@ export default function AnnuairePage() {
           ))}
         </select>
 
+
         {/* Filtre Statut */}
         <select
           value={filterStatut}
@@ -386,8 +438,10 @@ export default function AnnuairePage() {
         </select>
       </div>
 
+
       {/* ==================== STATISTIQUES ==================== */}
       {showStats && <AnnuaireStats salaries={filteredAndSortedSalaries} departements={departements} />}
+
 
       {/* ==================== SWITCH CARTES / TABLEAU ==================== */}
       <div className="flex gap-2 bg-slate-200 dark:bg-slate-800 rounded-xl p-1 w-fit">
@@ -417,6 +471,7 @@ export default function AnnuairePage() {
         </button>
       </div>
 
+
       {/* ==================== AFFICHAGE DONNÉES ==================== */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -439,6 +494,7 @@ export default function AnnuairePage() {
       ) : (
         <AnnuaireTable
           salaries={filteredAndSortedSalaries}
+          allSalaries={allSalaries}
           societes={societes}
           services={services}
           grades={grades}

@@ -180,11 +180,100 @@ class ServiceViewSet(viewsets.ModelViewSet):
     search_fields = ['nom', 'description']
     ordering_fields = ['nom']
 
-
     def get_permissions(self):
         """Tous les utilisateurs authentifiés"""
-        return [IsAuthenticated()]  # ✅ CHANGEMENT: Simplifié
+        return [IsAuthenticated()]
 
+    @action(detail=True, methods=['get'])
+    def hierarchy(self, request, pk=None):
+        """
+        GET /api/services/{id}/hierarchy/
+        Retourne l'organigramme hiérarchique du service
+        Affiche tous les salariés du service avec leurs superviseurs
+        """
+        service = self.get_object()
+        
+        # Récupérer tous les salariés du service
+        service_salaries = Salarie.objects.filter(
+            service=service
+        ).select_related('grade', 'responsable_direct')
+        
+        # Trouver les racines du service
+        roots = [
+            s for s in service_salaries 
+            if not s.responsable_direct or s.responsable_direct.service_id != service.id
+        ]
+        
+        # ✅ FONCTION INTERNE - CORRECTEMENT INDENTÉE
+        def build_node(salarie):
+            """Construit un nœud avec ses enfants et infos de départements"""
+            
+            # Récupérer tous les départements du salarié
+            departements_data = []
+            try:
+                # Vérifier si le salarié a une relation avec Departement
+                if hasattr(salarie, 'departements'):
+                    depts = salarie.departements.all()
+                elif hasattr(salarie, 'departement'):
+                    if hasattr(salarie.departement, 'all'):
+                        depts = salarie.departement.all()
+                    else:
+                        depts = [salarie.departement] if salarie.departement else []
+                else:
+                    depts = []
+                
+                # Construire les infos de département
+                for dept in depts:
+                    dept_info = {
+                        'id': dept.id,
+                        'nom': dept.nom,
+                        'region': getattr(dept, 'region', 'N/A'),
+                        'circuits_count': getattr(dept, 'nombre_circuits', 0),
+                    }
+                    departements_data.append(dept_info)
+                    
+            except Exception as e:
+                print(f"❌ Erreur: {e}")
+                departements_data = []
+            
+            # Nombre total de circuits
+            total_circuits = sum(
+                d.get('circuits_count', 0) for d in departements_data
+            )
+            
+            return {
+                'id': salarie.id,
+                'nom': f"{salarie.prenom} {salarie.nom}",
+                'grade_nom': salarie.grade.nom if salarie.grade else 'N/A',
+                'poste': salarie.poste or 'N/A',
+                'mail': salarie.mail_professionnel or '',
+                'extension_3cx': salarie.extension_3cx or '',
+                'phone': salarie.telephone_professionnel or '',
+                'responsable_direct_nom': f"{salarie.responsable_direct.prenom} {salarie.responsable_direct.nom}" if salarie.responsable_direct else '',
+                'photo': salarie.photo or '',
+                'matricule': salarie.matricule,
+                'statut': salarie.statut,
+                'departements': departements_data,
+                'total_circuits': total_circuits,
+                'children': [
+                    build_node(child)
+                    for child in service_salaries
+                    if child.responsable_direct and child.responsable_direct.id == salarie.id
+                ]
+            }
+        
+        # Construire l'arbre
+        hierarchy = [build_node(root) for root in roots]
+        
+        return Response({
+            'service': {
+                'id': service.id,
+                'nom': service.nom,
+                'description': service.description or ''
+            },
+            'hierarchy': hierarchy,
+            'total_salaries': len(service_salaries)
+        })
 
 
 class GradeViewSet(viewsets.ModelViewSet):

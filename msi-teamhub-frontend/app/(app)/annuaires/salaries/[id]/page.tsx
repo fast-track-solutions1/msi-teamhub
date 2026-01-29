@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL, getDepartements, getSalaries } from '@/lib/api-config';
 import SalarieEquipements from '@/components/annuaire/SalarieEquipements';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,6 +20,7 @@ import {
   Gift,
   PhoneCall,
 } from 'lucide-react';
+
 
 interface Salarie {
   id: number;
@@ -43,6 +45,7 @@ interface Salarie {
   creneau_travail: number | null;
 }
 
+
 interface CreneauTravail {
   id: number;
   nom: string;
@@ -52,10 +55,12 @@ interface CreneauTravail {
   heure_pause_fin: string | null;
 }
 
+
 interface Societe {
   id: number;
   nom: string;
 }
+
 
 interface Service {
   id: number;
@@ -63,10 +68,12 @@ interface Service {
   responsable: number | null;
 }
 
+
 interface Grade {
   id: number;
   nom: string;
 }
+
 
 interface Departement {
   id: number;
@@ -77,6 +84,7 @@ interface Departement {
   nombre_circuits: number;
 }
 
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token');
   return {
@@ -84,6 +92,7 @@ const getAuthHeaders = () => {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
+
 
 export default function SalarieDetailPage({
   params,
@@ -102,27 +111,29 @@ export default function SalarieDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const headers = getAuthHeaders();
 
+        // ✅ Appelle getDepartements et getSalaries AVEC pagination
+        const departementsData = await getDepartements();
+        const salariesData = await getSalaries();
+
+        // ✅ Promise.all SANS departementsRes et salariesRes
         const [
           salarieRes,
           societesRes,
           servicesRes,
           gradesRes,
-          departementsRes,
-          salariesRes,
           creneauxRes,
         ] = await Promise.all([
           fetch(`http://localhost:8000/api/salaries/${id}/`, { headers }),
           fetch(`http://localhost:8000/api/societes/`, { headers }),
           fetch(`http://localhost:8000/api/services/`, { headers }),
           fetch(`http://localhost:8000/api/grades/`, { headers }),
-          fetch(`http://localhost:8000/api/departements/`, { headers }),
-          fetch(`http://localhost:8000/api/salaries/`, { headers }),
           fetch(`http://localhost:8000/api/creneaux-travail/`, { headers }),
         ]);
 
@@ -137,16 +148,19 @@ export default function SalarieDetailPage({
         const societesData = await societesRes.json();
         const servicesData = await servicesRes.json();
         const gradesData = await gradesRes.json();
-        const departementsData = await departementsRes.json();
-        const salariesData = await salariesRes.json();
         const creneauxData = await creneauxRes.json();
 
         setSalarie(salarieData);
         setSocietes(societesData.results || societesData);
         setServices(servicesData.results || servicesData);
         setGrades(gradesData.results || gradesData);
-        setDepartements(departementsData.results || departementsData);
-        setSalaries(salariesData.results || salariesData);
+        
+        // ✅ CORRECTION : Utilise departementsData.results directement
+        setDepartements(departementsData.results || []);
+        
+        // ✅ CORRECTION : Utilise salariesData.results directement
+        setSalaries(salariesData.results || []);
+        
         setCreneaux(creneauxData.results || creneauxData);
       } catch (err: any) {
         setError(err.message);
@@ -160,6 +174,7 @@ export default function SalarieDetailPage({
     }
   }, [id]);
 
+
   useEffect(() => {
     const resolveParams = async () => {
       const resolvedParams = await params;
@@ -167,6 +182,8 @@ export default function SalarieDetailPage({
     };
     resolveParams();
   }, [params]);
+
+
   // Helpers
   const getSocieteName = (id: number) =>
     societes.find((s) => s.id === id)?.nom || 'N/A';
@@ -187,6 +204,13 @@ export default function SalarieDetailPage({
     const service = services.find((s) => s.id === serviceId);
     if (!service?.responsable) return 'N/A';
     return getResponsableName(service.responsable);
+  };
+
+  const getDepartementNames = (depts: number[]): string => {
+    if (!depts || depts.length === 0) return 'N/A';
+    return depts
+      .map(id => departements.find(d => d.id === id)?.numero || 'N/A')
+      .join(', ');
   };
 
   const getDepartementInfo = (deptId: number) =>
@@ -287,6 +311,7 @@ export default function SalarieDetailPage({
         </div>
       </div>
     );
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
       <div className="max-w-7xl mx-auto">
@@ -658,7 +683,8 @@ export default function SalarieDetailPage({
             </div>
           </div>
         </div>
-                {/* Équipements */}
+
+        {/* Équipements */}
         <div className="mt-6">
           <SalarieEquipements
             salarieId={salarie.id}
@@ -666,7 +692,6 @@ export default function SalarieDetailPage({
             salariePrenom={salarie.prenom}
           />
         </div>
-
       </div>
     </div>
   );

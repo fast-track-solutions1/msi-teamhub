@@ -11,6 +11,7 @@ export interface Service {
   description?: string;
   responsable?: number;
   responsable_info?: string;
+  parentservice?: number;
   actif: boolean;
   date_creation: string;
 }
