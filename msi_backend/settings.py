@@ -213,6 +213,11 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+# ===== CSRF trusted origins pour ngrok =====
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.dev",
+]
+
 
 LOGGING = {
     'version': 1,

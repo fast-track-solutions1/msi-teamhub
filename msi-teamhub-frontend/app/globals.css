@@ -145,3 +145,27 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+/* PRINT / PDF */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html, body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Si tu as un container avec cet id */
+  #fiche-poste-printable {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+

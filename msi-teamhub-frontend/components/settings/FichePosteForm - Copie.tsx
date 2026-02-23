@@ -1,5 +1,3 @@
-// components/settings/FichePosteForm.tsx
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -58,17 +56,6 @@ export default function FichePosteForm({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ✅ CALCULER LE TITRE AUTOMATIQUEMENT
-  const computeTitre = (serviceId?: number, gradeId?: number): string => {
-    const service = services.find((s) => s.id === serviceId);
-    const grade = grades.find((g) => g.id === gradeId);
-
-    if (!service && !grade) return '';
-    if (service && grade) return `${grade.nom} - ${service.nom}`;
-    if (service) return service.nom;
-    return grade ? grade.nom : '';
-  };
-
   // ✅ CHARGER LA FICHE (SI MODIFICATION)
   useEffect(() => {
     if (fiche) {
@@ -92,7 +79,6 @@ export default function FichePosteForm({
         statut: 'actif',
       });
     }
-
     setErrors({});
   }, [fiche, isOpen]);
 
@@ -102,11 +88,9 @@ export default function FichePosteForm({
     if (!formData.titre?.trim()) {
       newErrors.titre = 'Le titre est requis';
     }
-
     if (!formData.service) {
       newErrors.service = 'Le service est requis';
     }
-
     if (!formData.grade) {
       newErrors.grade = 'Le grade est requis';
     }
@@ -115,22 +99,11 @@ export default function FichePosteForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ MODIFIÉ: Recalculer le titre automatiquement
   const handleChange = (field: string, value: any) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-
-      // Recalculer le titre automatiquement quand service ou grade changent
-      if (field === 'service' || field === 'grade') {
-        updated.titre = computeTitre(
-          field === 'service' ? value : updated.service,
-          field === 'grade' ? value : updated.grade,
-        );
-      }
-
-      return updated;
-    });
-
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -170,59 +143,56 @@ export default function FichePosteForm({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
             {fiche ? 'Modifier la Fiche de Poste' : 'Nouvelle Fiche de Poste'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           >
             ✕
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Erreur générale */}
           {errors.submit && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400">
-              {errors.submit}
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-700 dark:text-red-300">{errors.submit}</p>
             </div>
           )}
 
-          {/* Titre - ✅ LECTURE SEULE */}
+          {/* Titre */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Titre *
             </label>
             <input
               type="text"
               value={formData.titre || ''}
-              readOnly
+              onChange={(e) => handleChange('titre', e.target.value)}
               className={`w-full px-4 py-2 rounded-lg border ${
                 errors.titre
                   ? 'border-red-500'
                   : 'border-slate-300 dark:border-slate-600'
-              } bg-slate-100 dark:bg-slate-800 dark:text-white cursor-not-allowed`}
-              placeholder="Titre généré automatiquement (Grade - Service)"
+              } dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
+              placeholder="Titre de la fiche de poste"
             />
             {errors.titre && (
               <p className="text-red-500 text-sm mt-1">{errors.titre}</p>
             )}
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Le titre est généré automatiquement depuis le Grade et le Service
-            </p>
           </div>
 
           {/* Service & Grade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {/* Service */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Service *
               </label>
               <select
@@ -250,7 +220,7 @@ export default function FichePosteForm({
 
             {/* Grade */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Grade *
               </label>
               <select
@@ -278,10 +248,10 @@ export default function FichePosteForm({
           </div>
 
           {/* Responsable Service & Statut */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             {/* Responsable Service */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Responsable Service
               </label>
               <select
@@ -305,7 +275,7 @@ export default function FichePosteForm({
 
             {/* Statut */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Statut
               </label>
               <select
@@ -322,7 +292,7 @@ export default function FichePosteForm({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Description
             </label>
             <textarea
@@ -336,7 +306,7 @@ export default function FichePosteForm({
 
           {/* Tâches */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Tâches principales
             </label>
             <textarea
@@ -350,7 +320,7 @@ export default function FichePosteForm({
 
           {/* Compétences */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Compétences requises
             </label>
             <textarea
@@ -364,7 +334,7 @@ export default function FichePosteForm({
 
           {/* Moyens de correction */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Moyens de correction
             </label>
             <textarea
@@ -378,7 +348,7 @@ export default function FichePosteForm({
 
           {/* Problèmes */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Problèmes identifiés
             </label>
             <textarea
@@ -392,7 +362,7 @@ export default function FichePosteForm({
 
           {/* Propositions */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Propositions d'amélioration
             </label>
             <textarea
@@ -406,7 +376,7 @@ export default function FichePosteForm({
 
           {/* Défauts */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
               Défauts constatés
             </label>
             <textarea
@@ -419,18 +389,18 @@ export default function FichePosteForm({
           </div>
 
           {/* Boutons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="px-6 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:bg-slate-400 transition-colors"
             >
               {isLoading ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
@@ -440,3 +410,5 @@ export default function FichePosteForm({
     </div>
   );
 }
+
+

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import user_me, fiche_poste_history
+from .views import user_me
 
 # ============================================================================
 # IMPORTATION DE TOUS LES VIEWSETS
@@ -99,11 +99,8 @@ router.register(r'import', ImportViewSet, basename='import')
 urlpatterns = [
     # Routes du router (inclut toutes les routes enregistrées)
     path('', include(router.urls)),
-
+    
     # ✅ ROUTE POUR L'UTILISATEUR CONNECTÉ - SANS PRÉFIXE 'api/'
     # Car msi_backend/urls.py inclut déjà path('api/', include('api.urls'))
     path('me/', user_me, name='user-me'),
-    
-    # ✅ NOUVELLE ROUTE - HISTORIQUE FICHE DE POSTE
-    path('fiches-poste/<int:pk>/history/', fiche_poste_history, name='fiche-poste-history'),
 ]

@@ -1,40 +1,43 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import { Loader2, Package2, Users } from 'lucide-react';
+import { Loader2, Package2, Users, X as XIcon, MapPin } from 'lucide-react';
 
-// ✅ IMPORTS DES CLASSES API
 import { salarieApi, Salarie } from '@/lib/salarie-api';
 import { departementApi, Departement } from '@/lib/departement-api';
 import { serviceApi, Service } from '@/lib/service-api';
 import { gradeApi, Grade } from '@/lib/grade-api';
 import { equipementApi, Equipment, EquipmentInstance } from '@/lib/equipement-api';
 import { societeApi, Societe } from '@/lib/societe-api';
-import { DEPARTEMENTS_COORDS, getDepartementCoords } from '@/lib/departements-coords';
+import { getDepartementCoords } from '@/lib/departements-coords';
 
-// Components réutilisés
 import AnnuaireCard from '@/app/(app)/annuaires/salaries/components/AnnuaireCard';
 
-
 // ============================================================================
-// CARTE INTERACTIVE - VERSION AMÉLIORÉE AVEC VRAIES COORDONNÉES
+// CARTE INTERACTIVE (France + markers verts + click -> modal)
 // ============================================================================
 
 interface InteractiveMapProps {
   isDark: boolean;
   departments: Departement[];
   salaries: Salarie[];
-  services: Service[];
-  grades: Grade[];
   onDepartmentClick: (dept: Departement) => void;
 }
 
-function InteractiveMap({ isDark, departments, salaries, services, grades, onDepartmentClick }: InteractiveMapProps) {
+function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
 
@@ -44,64 +47,44 @@ function InteractiveMap({ isDark, departments, salaries, services, grades, onDep
     map.current = L.map(mapContainer.current, {
       zoomControl: true,
       attributionControl: true,
-    }).setView([46.2276, 2.3522], 6);
+    }).setView([46.8, 2.6], 5.8); // focus France
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
+      maxZoom: 18,
       minZoom: 4,
     }).addTo(map.current);
 
     const depsWithCircuits = departments.filter(d => (d.nombre_circuits || 0) > 0);
 
+    const greenIcon = new L.Icon({
+      iconUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      iconRetinaUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+
     depsWithCircuits.forEach((dept: Departement) => {
-      // Récupérer les VRAIES coordonnées
       const coords = getDepartementCoords(dept.numero);
       if (!coords) return;
 
       const deptSalaries = salaries.filter((s: Salarie) => s.departements?.includes(dept.id));
       const circuits = dept.nombre_circuits || 0;
 
-      let fillColor = '#3b82f6';
-      let intensity = 0.6;
-      let radius = 18;
-      
-      if (circuits <= 20) {
-        fillColor = '#f59e0b';
-        intensity = 0.4;
-        radius = 12;
-      } else if (circuits <= 50) {
-        fillColor = '#3b82f6';
-        intensity = 0.6;
-        radius = 18;
-      } else if (circuits <= 100) {
-        fillColor = '#10b981';
-        intensity = 0.7;
-        radius = 22;
-      } else {
-        fillColor = '#8b5cf6';
-        intensity = 0.85;
-        radius = 28;
-      }
+      const marker = L.marker([coords.lat, coords.lng], { icon: greenIcon }).addTo(
+        map.current!,
+      );
 
-      const circle = L.circleMarker([coords.lat, coords.lng], {
-        radius: radius,
-        fillColor: fillColor,
-        color: '#1e293b',
-        weight: 2.5,
-        opacity: 1,
-        fillOpacity: intensity,
-      }).addTo(map.current!);
-
-      circle.on('click', () => onDepartmentClick(dept));
-      circle.on('mouseover', function() {
-        this.setStyle({ weight: 3.5, fillOpacity: Math.min(intensity + 0.15, 1) });
-      });
-      circle.on('mouseout', function() {
-        this.setStyle({ weight: 2.5, fillOpacity: intensity });
-      });
-
-      circle.bindPopup(`<strong>${dept.nom}</strong><br/>Circuits: ${circuits}<br/>Salariés: ${deptSalaries.length}`);
+      marker.on('click', () => onDepartmentClick(dept));
+      marker.bindPopup(
+        `<strong>${dept.nom}</strong><br/>Circuits: ${circuits}<br/>Salariés: ${deptSalaries.length}`,
+      );
     });
 
     return () => {
@@ -110,138 +93,232 @@ function InteractiveMap({ isDark, departments, salaries, services, grades, onDep
         map.current = null;
       }
     };
-  }, [departments, salaries, onDepartmentClick]);
+  }, [departments, salaries, onDepartmentClick, isDark]);
 
-  return <div ref={mapContainer} className="w-full h-full rounded-lg shadow-lg border border-slate-300 dark:border-slate-600" />;
+  return (
+    <div
+      ref={mapContainer}
+      className="w-full h-full rounded-lg shadow-lg border border-slate-300 dark:border-slate-600"
+    />
+  );
 }
 
-
 // ============================================================================
-// TABLEAU DÉTAIL DÉPARTEMENT
+// MODAL DÉTAIL DÉPARTEMENT
 // ============================================================================
 
-interface DepartmentDetailTableProps {
+interface DepartmentDetailModalProps {
   department: Departement;
   salaries: Salarie[];
   services: Service[];
   grades: Grade[];
   isDark: boolean;
+  onClose: () => void;
 }
 
-function DepartmentDetailTable({ department, salaries, services, grades, isDark }: DepartmentDetailTableProps) {
+function DepartmentDetailModal({
+  department,
+  salaries,
+  services,
+  grades,
+  isDark,
+  onClose,
+}: DepartmentDetailModalProps) {
   const deptSalaries = salaries.filter(s => s.departements?.includes(department.id));
   const coords = getDepartementCoords(department.numero);
 
-  // Grouper par service
-  const salariesByService = services.map(svc => {
-    const employees = deptSalaries.filter(s => s.service === svc.id);
-    return {
-      service: svc.nom,
-      employees: employees,
-    };
-  }).filter(s => s.employees.length > 0);
+  const salariesByService = services
+    .map(svc => {
+      const employees = deptSalaries.filter(s => s.service === svc.id);
+      return { service: svc.nom, employees };
+    })
+    .filter(s => s.employees.length > 0);
 
   return (
-    <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-      isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-    }`}>
-      <div className="p-6 border-b border-slate-700/30">
-        <h3 className={`font-bold text-2xl ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          📍 {department.numero} - {department.nom}
-        </h3>
-      </div>
-
-      {/* Info générale */}
-      <div className="p-6">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-blue-50'}`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>RÉGION</p>
-            <p className={`font-bold text-lg mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{department.region}</p>
-          </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-emerald-50'}`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>CHEF-LIEU</p>
-            <p className={`font-bold text-lg mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{department.chef_lieu}</p>
-          </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-purple-50'}`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>CODE</p>
-            <p className={`font-bold text-lg mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{department.numero}</p>
-          </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-orange-50'}`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>CIRCUITS</p>
-            <p className={`font-bold text-lg mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{department.nombre_circuits}</p>
-          </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-pink-50'}`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>SALARIÉS</p>
-            <p className={`font-bold text-lg mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{deptSalaries.length}</p>
-          </div>
-        </div>
-
-        {/* Coordonnées GPS */}
-        {coords && (
-          <div className={`p-4 rounded-lg mb-6 border ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-            <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              📍 Coordonnées GPS: {coords.lat}, {coords.lng}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div
+        className={`relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl ${
+          isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
+        }`}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/40">
+          <div>
+            <h3 className={isDark ? 'font-bold text-xl text-white' : 'font-bold text-xl text-slate-900'}>
+              📍 {department.numero} - {department.nom}
+            </h3>
+            <p className={isDark ? 'text-xs mt-1 text-slate-400' : 'text-xs mt-1 text-slate-600'}>
+              Détail complet du département (circuits, salariés, services, grades).
             </p>
           </div>
-        )}
+          <button
+            onClick={onClose}
+            className={
+              isDark
+                ? 'inline-flex items-center justify-center rounded-full p-1.5 text-slate-300 hover:bg-slate-800'
+                : 'inline-flex items-center justify-center rounded-full p-1.5 text-slate-500 hover:bg-slate-100'
+            }
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
 
-        {/* Tableau des salariés par service et grade */}
-        <div className="space-y-6">
-          {salariesByService.map((serviceGroup) => (
-            <div key={serviceGroup.service}>
-              <h4 className={`font-bold text-lg mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                💼 {serviceGroup.service} ({serviceGroup.employees.length} emp.)
-              </h4>
-
-              {/* Grouper par grade */}
-              {grades.map((grade) => {
-                const gradeEmployees = serviceGroup.employees.filter(s => s.grade === grade.id);
-                if (gradeEmployees.length === 0) return null;
-
-                return (
-                  <div key={`${serviceGroup.service}-${grade.id}`} className="mb-4">
-                    <p className={`text-sm font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      📊 {grade.nom} ({gradeEmployees.length})
-                    </p>
-                    <div className="overflow-x-auto">
-                      <table className={`w-full text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        <thead>
-                          <tr className={`border-b ${isDark ? 'border-slate-700/50 bg-slate-800/30' : 'border-slate-200 bg-slate-100/50'}`}>
-                            <th className="px-3 py-2 text-left">Nom</th>
-                            <th className="px-3 py-2 text-left">Prénom</th>
-                            <th className="px-3 py-2 text-left">Matricule</th>
-                            <th className="px-3 py-2 text-left">Email</th>
-                            <th className="px-3 py-2 text-left">3CX</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {gradeEmployees.map((emp) => (
-                            <tr key={emp.id} className={`border-b ${isDark ? 'border-slate-700/30' : 'border-slate-200/50'}`}>
-                              <td className="px-3 py-2 font-semibold">{emp.nom}</td>
-                              <td className="px-3 py-2">{emp.prenom}</td>
-                              <td className="px-3 py-2 font-mono text-xs">{emp.matricule}</td>
-                              <td className="px-3 py-2">
-                                <a href={`mailto:${emp.mail_professionnel}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-                                  {emp.mail_professionnel || 'N/A'}
-                                </a>
-                              </td>
-                              <td className="px-3 py-2">{emp.extension_3cx || 'N/A'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-60px)]">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-blue-50'}>
+              <p className={isDark ? 'text-xs font-bold text-blue-400' : 'text-xs font-bold text-blue-600'}>
+                RÉGION
+              </p>
+              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
+                {department.region}
+              </p>
             </div>
-          ))}
+            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-emerald-50'}>
+              <p
+                className={
+                  isDark ? 'text-xs font-bold text-emerald-400' : 'text-xs font-bold text-emerald-600'
+                }
+              >
+                CHEF-LIEU
+              </p>
+              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
+                {department.chef_lieu}
+              </p>
+            </div>
+            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-purple-50'}>
+              <p
+                className={
+                  isDark ? 'text-xs font-bold text-purple-400' : 'text-xs font-bold text-purple-600'
+                }
+              >
+                CODE
+              </p>
+              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
+                {department.numero}
+              </p>
+            </div>
+            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-orange-50'}>
+              <p
+                className={
+                  isDark ? 'text-xs font-bold text-orange-400' : 'text-xs font-bold text-orange-600'
+                }
+              >
+                CIRCUITS
+              </p>
+              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
+                {department.nombre_circuits}
+              </p>
+            </div>
+            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-pink-50'}>
+              <p className={isDark ? 'text-xs font-bold text-pink-400' : 'text-xs font-bold text-pink-600'}>
+                SALARIÉS
+              </p>
+              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
+                {deptSalaries.length}
+              </p>
+            </div>
+          </div>
+
+          {coords && (
+            <div
+              className={
+                isDark
+                  ? 'p-4 rounded-lg border bg-slate-800/30 border-slate-700'
+                  : 'p-4 rounded-lg border bg-slate-50 border-slate-200'
+              }
+            >
+              <p className={isDark ? 'text-sm font-semibold text-white' : 'text-sm font-semibold text-slate-900'}>
+                📍 Coordonnées GPS: {coords.lat}, {coords.lng}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {salariesByService.map(serviceGroup => (
+              <div key={serviceGroup.service}>
+                <h4 className={isDark ? 'font-bold text-lg mb-3 text-white' : 'font-bold text-lg mb-3 text-slate-900'}>
+                  💼 {serviceGroup.service} ({serviceGroup.employees.length} emp.)
+                </h4>
+
+                {grades.map(grade => {
+                  const gradeEmployees = serviceGroup.employees.filter(s => s.grade === grade.id);
+                  if (gradeEmployees.length === 0) return null;
+
+                  return (
+                    <div key={`${serviceGroup.service}-${grade.id}`} className="mb-4">
+                      <p
+                        className={
+                          isDark ? 'text-sm font-semibold mb-2 text-slate-300' : 'text-sm font-semibold mb-2 text-slate-700'
+                        }
+                      >
+                        📊 {grade.nom} ({gradeEmployees.length})
+                      </p>
+                      <div className="overflow-x-auto">
+                        <table
+                          className={
+                            isDark ? 'w-full text-xs text-slate-300' : 'w-full text-xs text-slate-700'
+                          }
+                        >
+                          <thead>
+                            <tr
+                              className={
+                                isDark
+                                  ? 'border-b border-slate-700/50 bg-slate-800/30'
+                                  : 'border-b border-slate-200 bg-slate-100/50'
+                              }
+                            >
+                              <th className="px-3 py-2 text-left">Nom</th>
+                              <th className="px-3 py-2 text-left">Prénom</th>
+                              <th className="px-3 py-2 text-left">Matricule</th>
+                              <th className="px-3 py-2 text-left">Email</th>
+                              <th className="px-3 py-2 text-left">3CX</th>
+                              <th className="px-3 py-2 text-left">Service</th>
+                              <th className="px-3 py-2 text-left">Grade</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {gradeEmployees.map(emp => {
+                              const empService = services.find(s => s.id === emp.service);
+                              const empGrade = grades.find(g => g.id === emp.grade);
+                              return (
+                                <tr
+                                  key={emp.id}
+                                  className={
+                                    isDark
+                                      ? 'border-b border-slate-700/30'
+                                      : 'border-b border-slate-200/50'
+                                  }
+                                >
+                                  <td className="px-3 py-2 font-semibold">{emp.nom}</td>
+                                  <td className="px-3 py-2">{emp.prenom}</td>
+                                  <td className="px-3 py-2 font-mono text-xs">{emp.matricule}</td>
+                                  <td className="px-3 py-2">
+                                    <a
+                                      href={`mailto:${emp.mail_professionnel}`}
+                                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      {emp.mail_professionnel || 'N/A'}
+                                    </a>
+                                  </td>
+                                  <td className="px-3 py-2">{emp.extension_3cx || 'N/A'}</td>
+                                  <td className="px-3 py-2">{empService?.nom || '—'}</td>
+                                  <td className="px-3 py-2">{empGrade?.nom || '—'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 // ============================================================================
 // STATS ÉQUIPEMENTS
@@ -257,7 +334,10 @@ interface EquipmentStatsProps {
 function EquipmentStats({ equipment, instances, salaries, isDark }: EquipmentStatsProps) {
   const totalStock = equipment.reduce((sum, e) => sum + (e.stock_total || 0), 0);
   const totalDisponible = equipment.reduce((sum, e) => sum + (e.stock_disponible || 0), 0);
-  const totalUtilise = equipment.reduce((sum, e) => sum + ((e.stock_total || 0) - (e.stock_disponible || 0)), 0);
+  const totalUtilise = equipment.reduce(
+    (sum, e) => sum + ((e.stock_total || 0) - (e.stock_disponible || 0)),
+    0,
+  );
 
   const instancesAttribuees = instances.filter(i => i.salarie).length;
   const instancesNonAttribuees = instances.length - instancesAttribuees;
@@ -269,94 +349,159 @@ function EquipmentStats({ equipment, instances, salaries, isDark }: EquipmentSta
       nom: eq.nom,
       stock_total: eq.stock_total,
       stock_disponible: eq.stock_disponible,
-      attribuees: attribuees,
+      attribuees,
       non_attribuees: eqInstances.length - attribuees,
     };
   });
 
   return (
-    <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-      isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-    }`}>
+    <div
+      className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+        isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+      }`}
+    >
       <div className="p-6 border-b border-slate-700/30">
-        <h3 className={`font-bold text-lg flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        <h3 className={isDark ? 'font-bold text-lg flex items-center gap-2 text-white' : 'font-bold text-lg flex items-center gap-2 text-slate-900'}>
           <Package2 className="w-5 h-5" />
           Équipements & Stock
         </h3>
-        <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+        <p className={isDark ? 'text-xs mt-1 text-slate-400' : 'text-xs mt-1 text-slate-600'}>
           Gestion complète du parc informatique
         </p>
       </div>
       <div className="p-6">
-        {/* KPI Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-blue-50'} border border-blue-200 dark:border-blue-800`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>STOCK TOTAL</p>
-            <p className={`text-2xl font-bold mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalStock}</p>
+          <div
+            className={
+              isDark
+                ? 'p-4 rounded-lg bg-slate-800/50 border border-blue-800'
+                : 'p-4 rounded-lg bg-blue-50 border border-blue-200'
+            }
+          >
+            <p className={isDark ? 'text-xs font-bold text-blue-400' : 'text-xs font-bold text-blue-600'}>
+              STOCK TOTAL
+            </p>
+            <p className={isDark ? 'text-2xl font-bold mt-2 text-white' : 'text-2xl font-bold mt-2 text-slate-900'}>
+              {totalStock}
+            </p>
           </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-emerald-50'} border border-emerald-200 dark:border-emerald-800`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>DISPONIBLE</p>
-            <p className={`text-2xl font-bold mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalDisponible}</p>
+          <div
+            className={
+              isDark
+                ? 'p-4 rounded-lg bg-slate-800/50 border border-emerald-800'
+                : 'p-4 rounded-lg bg-emerald-50 border border-emerald-200'
+            }
+          >
+            <p
+              className={
+                isDark ? 'text-xs font-bold text-emerald-400' : 'text-xs font-bold text-emerald-600'
+              }
+            >
+              DISPONIBLE
+            </p>
+            <p className={isDark ? 'text-2xl font-bold mt-2 text-white' : 'text-2xl font-bold mt-2 text-slate-900'}>
+              {totalDisponible}
+            </p>
           </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-orange-50'} border border-orange-200 dark:border-orange-800`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>UTILISÉ</p>
-            <p className={`text-2xl font-bold mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalUtilise}</p>
+          <div
+            className={
+              isDark
+                ? 'p-4 rounded-lg bg-slate-800/50 border border-orange-800'
+                : 'p-4 rounded-lg bg-orange-50 border border-orange-200'
+            }
+          >
+            <p
+              className={
+                isDark ? 'text-xs font-bold text-orange-400' : 'text-xs font-bold text-orange-600'
+              }
+            >
+              UTILISÉ
+            </p>
+            <p className={isDark ? 'text-2xl font-bold mt-2 text-white' : 'text-2xl font-bold mt-2 text-slate-900'}>
+              {totalUtilise}
+            </p>
           </div>
-          <div className={`p-4 rounded-lg ${isDark ? 'bg-slate-800/50' : 'bg-purple-50'} border border-purple-200 dark:border-purple-800`}>
-            <p className={`text-xs font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>INSTANCES</p>
-            <p className={`text-2xl font-bold mt-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{instances.length}</p>
+          <div
+            className={
+              isDark
+                ? 'p-4 rounded-lg bg-slate-800/50 border border-purple-800'
+                : 'p-4 rounded-lg bg-purple-50 border border-purple-200'
+            }
+          >
+            <p
+              className={
+                isDark ? 'text-xs font-bold text-purple-400' : 'text-xs font-bold text-purple-600'
+              }
+            >
+              INSTANCES
+            </p>
+            <p className={isDark ? 'text-2xl font-bold mt-2 text-white' : 'text-2xl font-bold mt-2 text-slate-900'}>
+              {instances.length}
+            </p>
           </div>
         </div>
 
-        {/* Breakdown Attribué/Non Attribué */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className={`p-4 rounded-lg border ${isDark ? 'bg-slate-800/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-            <h4 className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Attribution</h4>
+          <div
+            className={
+              isDark
+                ? 'p-4 rounded-lg border bg-slate-800/30 border-slate-700'
+                : 'p-4 rounded-lg border bg-slate-50 border-slate-200'
+            }
+          >
+            <h4 className={isDark ? 'font-bold mb-3 text-white' : 'font-bold mb-3 text-slate-900'}>
+              Attribution
+            </h4>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>✅ Attribuées</span>
+                <span className={isDark ? 'text-sm text-slate-400' : 'text-sm text-slate-600'}>
+                  ✅ Attribuées
+                </span>
                 <span className="font-bold text-green-600">{instancesAttribuees}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>❌ Non attribuées</span>
+                <span className={isDark ? 'text-sm text-slate-400' : 'text-sm text-slate-600'}>
+                  ❌ Non attribuées
+                </span>
                 <span className="font-bold text-red-600">{instancesNonAttribuees}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
-                <span className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total instances</span>
+                <span className={isDark ? 'text-sm font-semibold text-slate-300' : 'text-sm font-semibold text-slate-700'}>
+                  Total instances
+                </span>
                 <span className="font-bold">{instances.length}</span>
               </div>
             </div>
           </div>
 
-          {/* Pie chart Attribué/Non */}
           <div className="flex justify-center">
             <ResponsiveContainer width="100%" height={150}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Attribuées', value: instancesAttribuees },
-                    { name: 'Non attribuées', value: instancesNonAttribuees },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={60}
-                  dataKey="value"
-                >
-                  <Cell fill="#10b981" />
-                  <Cell fill="#ef4444" />
-                </Pie>
+              <BarChart
+                data={[
+                  { name: 'Attribuées', value: instancesAttribuees },
+                  { name: 'Non attribuées', value: instancesNonAttribuees },
+                ]}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} />
+                <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} />
+                <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} />
                 <Tooltip />
-              </PieChart>
+                <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Tableau détaillé */}
         <div className="overflow-x-auto">
-          <table className={`w-full text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+          <table className={isDark ? 'w-full text-sm text-slate-300' : 'w-full text-sm text-slate-700'}>
             <thead>
-              <tr className={`border-b ${isDark ? 'border-slate-700/50 bg-slate-800/30' : 'border-slate-200 bg-slate-100/50'}`}>
+              <tr
+                className={
+                  isDark
+                    ? 'border-b border-slate-700/50 bg-slate-800/30'
+                    : 'border-b border-slate-200 bg-slate-100/50'
+                }
+              >
                 <th className="px-4 py-3 text-left font-bold">Équipement</th>
                 <th className="px-4 py-3 text-center font-bold">Stock Total</th>
                 <th className="px-4 py-3 text-center font-bold">Disponible</th>
@@ -365,26 +510,57 @@ function EquipmentStats({ equipment, instances, salaries, isDark }: EquipmentSta
               </tr>
             </thead>
             <tbody>
-              {equipmentStats.map((eq) => (
-                <tr key={eq.nom} className={`border-b ${isDark ? 'border-slate-700/30 hover:bg-slate-800/20' : 'border-slate-200/50 hover:bg-slate-100/30'}`}>
+              {equipmentStats.map(eq => (
+                <tr
+                  key={eq.nom}
+                  className={
+                    isDark
+                      ? 'border-b border-slate-700/30 hover:bg-slate-800/20'
+                      : 'border-b border-slate-200/50 hover:bg-slate-100/30'
+                  }
+                >
                   <td className="px-4 py-3 font-semibold">{eq.nom}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-1 rounded font-bold ${isDark ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                    <span
+                      className={
+                        isDark
+                          ? 'px-2 py-1 rounded font-bold bg-blue-500/20 text-blue-300'
+                          : 'px-2 py-1 rounded font-bold bg-blue-100 text-blue-700'
+                      }
+                    >
                       {eq.stock_total}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-1 rounded font-bold ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span
+                      className={
+                        isDark
+                          ? 'px-2 py-1 rounded font-bold bg-emerald-500/20 text-emerald-300'
+                          : 'px-2 py-1 rounded font-bold bg-emerald-100 text-emerald-700'
+                      }
+                    >
                       {eq.stock_disponible}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-1 rounded font-bold ${isDark ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-700'}`}>
+                    <span
+                      className={
+                        isDark
+                          ? 'px-2 py-1 rounded font-bold bg-green-500/20 text-green-300'
+                          : 'px-2 py-1 rounded font-bold bg-green-100 text-green-700'
+                      }
+                    >
                       {eq.attribuees}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-1 rounded font-bold ${isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-700'}`}>
+                    <span
+                      className={
+                        isDark
+                          ? 'px-2 py-1 rounded font-bold bg-red-500/20 text-red-300'
+                          : 'px-2 py-1 rounded font-bold bg-red-100 text-red-700'
+                      }
+                    >
                       {eq.non_attribuees}
                     </span>
                   </td>
@@ -397,7 +573,6 @@ function EquipmentStats({ equipment, instances, salaries, isDark }: EquipmentSta
     </div>
   );
 }
-
 
 // ============================================================================
 // PAGE PRINCIPALE
@@ -418,19 +593,27 @@ export default function DashboardPage() {
 
   const [selectedDept, setSelectedDept] = useState<Departement | null>(null);
 
+  const [deptSearch, setDeptSearch] = useState('');
+  const [deptSortKey, setDeptSortKey] = useState<
+    'numero' | 'nom' | 'region' | 'circuits' | 'salaries'
+  >('nom');
+  const [deptSortDir, setDeptSortDir] = useState<'asc' | 'desc'>('asc');
+  const [expandedDeptId, setExpandedDeptId] = useState<number | null>(null);
+
   const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      const [deptData, serviceData, gradeData, equipData, instanceData, salaryData, societeData] = await Promise.all([
-        departementApi.getDepartements(),
-        serviceApi.getServices(),
-        gradeApi.getGrades(),
-        equipementApi.getEquipements(),
-        equipementApi.getInstances(),
-        salarieApi.getSalaries(),
-        societeApi.getSocietes(),
-      ]);
+
+      const [deptData, serviceData, gradeData, equipData, instanceData, salaryData, societeData] =
+        await Promise.all([
+          departementApi.getDepartements(),
+          serviceApi.getServices(),
+          gradeApi.getGrades(),
+          equipementApi.getEquipements(),
+          equipementApi.getInstances(),
+          salarieApi.getSalaries(),
+          societeApi.getSocietes(),
+        ]);
 
       setDepartments(Array.isArray(deptData) ? deptData : []);
       setServices(Array.isArray(serviceData) ? serviceData : []);
@@ -456,40 +639,70 @@ export default function DashboardPage() {
     }
   }, [mounted, loadAllData]);
 
-  // 📊 CALCULS
   const totalEmployees = salaries.length;
-  const totalDepartments = departments.length;
   const deptWithCircuits = departments.filter(d => (d.nombre_circuits || 0) > 0).length;
   const totalServices = services.length;
   const totalGrades = grades.length;
   const totalCircuits = departments.reduce((sum, d) => sum + (d.nombre_circuits || 0), 0);
 
-  // 👥 EFFECTIFS PAR DÉPARTEMENT
-  const employeesByDept = departments.map(dept => {
-    const count = salaries.filter(s => s.departements?.includes(dept.id)).length;
-    return { name: dept.nom, employees: count };
-  }).filter(d => d.employees > 0).sort((a, b) => b.employees - a.employees);
+  const employeesByDept = departments
+    .map(dept => {
+      const count = salaries.filter(s => s.departements?.includes(dept.id)).length;
+      return { name: dept.nom, employees: count };
+    })
+    .filter(d => d.employees > 0)
+    .sort((a, b) => b.employees - a.employees);
 
-  // 👥 EFFECTIFS PAR SERVICE
-  const employeesByService = services.map(svc => {
-    const count = salaries.filter(s => s.service === svc.id).length;
-    return { name: svc.nom, employees: count };
-  }).filter(s => s.employees > 0).sort((a, b) => b.employees - a.employees);
+  const employeesByService = services
+    .map(svc => {
+      const count = salaries.filter(s => s.service === svc.id).length;
+      return { name: svc.nom, employees: count };
+    })
+    .filter(s => s.employees > 0)
+    .sort((a, b) => b.employees - a.employees);
 
-  // 👥 EFFECTIFS PAR GRADE
-  const employeesByGrade = grades.map(grd => {
-    const count = salaries.filter(s => s.grade === grd.id).length;
-    return { name: grd.nom, employees: count };
-  }).filter(g => g.employees > 0).sort((a, b) => b.employees - a.employees);
+  const employeesByGrade = grades
+    .map(grd => {
+      const count = salaries.filter(s => s.grade === grd.id).length;
+      return { name: grd.nom, employees: count };
+    })
+    .filter(g => g.employees > 0)
+    .sort((a, b) => b.employees - a.employees);
 
-  // 👥 EFFECTIFS PAR GENRE
-  const employeesByGender = [
-    { name: 'Hommes', employees: salaries.filter(s => s.genre === 'm').length },
-    { name: 'Femmes', employees: salaries.filter(s => s.genre === 'f').length },
-    { name: 'Autre', employees: salaries.filter(s => s.genre === 'autre').length },
-  ].filter(g => g.employees > 0);
+  const totalHommes = salaries.filter(s => s.genre === 'm').length;
+  const totalFemmes = salaries.filter(s => s.genre === 'f').length;
 
-  const COLORS = ['#3b82f6', '#ef4444', '#10b981'];
+  const genderStackByDept = departments
+    .map(dept => {
+      const hommes = salaries.filter(s => s.genre === 'm' && s.departements?.includes(dept.id)).length;
+      const femmes = salaries.filter(s => s.genre === 'f' && s.departements?.includes(dept.id)).length;
+      const total = hommes + femmes;
+      return { name: dept.nom, hommes, femmes, total };
+    })
+    .filter(d => d.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const genderStackByService = services
+    .map(svc => {
+      const hommes = salaries.filter(s => s.genre === 'm' && s.service === svc.id).length;
+      const femmes = salaries.filter(s => s.genre === 'f' && s.service === svc.id).length;
+      const total = hommes + femmes;
+      return { name: svc.nom, hommes, femmes, total };
+    })
+    .filter(d => d.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const genderStackByGrade = grades
+    .map(grd => {
+      const hommes = salaries.filter(s => s.genre === 'm' && s.grade === grd.id).length;
+      const femmes = salaries.filter(s => s.genre === 'f' && s.grade === grd.id).length;
+      const total = hommes + femmes;
+      return { name: grd.nom, hommes, femmes, total };
+    })
+    .filter(d => d.total > 0)
+    .sort((a, b) => b.total - a.total);
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -515,50 +728,85 @@ export default function DashboardPage() {
   const textColor = isDark ? '#94a3b8' : '#64748b';
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDark
-        ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800'
-        : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
-    } p-6 md:p-8`}>
-      <div className="space-y-8 max-w-7xl mx-auto">
-        
-        {/* Header */}
+    <div
+      className={`min-h-screen transition-colors duration-300 ${
+        isDark
+          ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800'
+          : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
+      } p-4 md:p-6`}
+    >
+      <div className="space-y-8 w-full mx-auto">
         <div className="animate-in fade-in slide-in-from-top-4">
-          <h1 className={`text-5xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <h1 className={isDark ? 'text-5xl font-bold text-white' : 'text-5xl font-bold text-slate-900'}>
             📊 Tableau de Bord RH
           </h1>
-          <p className={`mt-3 text-lg ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <p className={isDark ? 'mt-3 text-lg text-slate-400' : 'mt-3 text-lg text-slate-600'}>
             MSI TeamHub - Analytics RH & Gestion Départements
           </p>
         </div>
 
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { title: 'Employés', value: totalEmployees, icon: '👥', color: 'from-blue-500 to-cyan-500', subtext: 'Total salariés' },
-            { title: 'Circuits', value: totalCircuits, icon: '🔗', color: 'from-amber-500 to-orange-500', subtext: `${deptWithCircuits} depts` },
-            { title: 'Services', value: totalServices, icon: '📋', color: 'from-purple-500 to-pink-500', subtext: 'Unités' },
-            { title: 'Grades', value: totalGrades, icon: '📊', color: 'from-rose-500 to-red-500', subtext: 'Niveaux' },
-          ].map((kpi) => (
+            {
+              title: 'Employés',
+              value: totalEmployees,
+              icon: '👥',
+              color: 'from-blue-500 to-cyan-500',
+              subtext: 'Total salariés',
+            },
+            {
+              title: 'Circuits',
+              value: totalCircuits,
+              icon: '🔗',
+              color: 'from-amber-500 to-orange-500',
+              subtext: `${deptWithCircuits} depts`,
+            },
+            {
+              title: 'Services',
+              value: totalServices,
+              icon: '📋',
+              color: 'from-purple-500 to-pink-500',
+              subtext: 'Unités',
+            },
+            {
+              title: 'Grades',
+              value: totalGrades,
+              icon: '📊',
+              color: 'from-rose-500 to-red-500',
+              subtext: 'Niveaux',
+            },
+          ].map(kpi => (
             <div
               key={kpi.title}
-              className={`rounded-xl border backdrop-blur-xl overflow-hidden transition-all hover:shadow-2xl hover:scale-105 cursor-pointer group ${
+              className={`relative rounded-xl border backdrop-blur-xl overflow-hidden transition-all hover:shadow-2xl hover:scale-[1.02] cursor-pointer group ${
                 isDark
                   ? 'bg-slate-900/40 border-slate-700/50 hover:border-slate-600'
                   : 'bg-white/40 border-white/60 shadow-sm hover:shadow-md'
               }`}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${kpi.color} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
+              <div
+                className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${kpi.color} opacity-5 group-hover:opacity-10 transition-opacity`}
+              />
               <div className="relative p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className={`text-xs font-bold tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p
+                      className={
+                        isDark
+                          ? 'text-xs font-bold tracking-widest text-slate-400'
+                          : 'text-xs font-bold tracking-widest text-slate-600'
+                      }
+                    >
                       {kpi.title}
                     </p>
-                    <h3 className={`text-4xl font-bold mt-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    <h3
+                      className={
+                        isDark ? 'text-4xl font-bold mt-3 text-white' : 'text-4xl font-bold mt-3 text-slate-900'
+                      }
+                    >
                       {kpi.value}
                     </h3>
-                    <p className={`text-xs mt-2 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                    <p className={isDark ? 'text-xs mt-2 text-slate-500' : 'text-xs mt-2 text-slate-500'}>
                       {kpi.subtext}
                     </p>
                   </div>
@@ -569,139 +817,549 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* CARTE 16/9 + CHARTS - DOUBLE LARGEUR */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CARTE */}
-          <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+        <div
+          className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
             isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-          }`}>
-            <div className="p-6 border-b border-slate-700/30">
-              <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                🗺️ Carte Interactive
+          }`}
+        >
+          <div className="p-6 border-b border-slate-700/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-emerald-500" />
+              <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
+                Carte Interactive des Départements
               </h3>
-              <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Cliquez sur un point pour voir les détails
+            </div>
+            <p className={isDark ? 'text-xs text-slate-400' : 'text-xs text-slate-600'}>
+              Cliquez sur un marqueur pour voir le détail du département.
+            </p>
+          </div>
+          <div className="h-[70vh]">
+            <InteractiveMap
+              isDark={isDark}
+              departments={departments}
+              salaries={salaries}
+              onDepartmentClick={setSelectedDept}
+            />
+          </div>
+        </div>
+
+        <div
+          className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+            isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+          }`}
+        >
+          <div className="p-6 border-b border-slate-700/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
+                Départements actifs
+              </h3>
+              <p className={isDark ? 'text-xs mt-1 text-slate-400' : 'text-xs mt-1 text-slate-600'}>
+                Numéro, nom, région, chef-lieu, circuits, effectifs, détail des salariés.
               </p>
             </div>
-            <div className="p-6" style={{ aspectRatio: '16 / 9' }}>
-              <InteractiveMap 
-                isDark={isDark} 
-                departments={departments} 
-                salaries={salaries} 
-                services={services} 
-                grades={grades}
-                onDepartmentClick={setSelectedDept}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={deptSearch}
+                onChange={e => setDeptSearch(e.target.value)}
+                placeholder="Filtrer (numéro, nom, région, chef-lieu)..."
+                className={
+                  isDark
+                    ? 'px-3 py-2 rounded-lg border border-slate-600 bg-slate-800 text-sm text-slate-100 placeholder:text-slate-500'
+                    : 'px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400'
+                }
               />
             </div>
           </div>
 
-          {/* Genre Distribution */}
-          <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-            isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-          }`}>
-            <div className="p-6 border-b border-slate-700/30">
-              <h3 className={`font-bold text-lg flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                <Users className="w-5 h-5" />
-                Distribution par Genre
-              </h3>
-            </div>
-            <div className="p-6 flex justify-center" style={{ aspectRatio: '16 / 9' }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie 
-                    data={employeesByGender} 
-                    cx="50%" 
-                    cy="50%" 
-                    innerRadius={60}
-                    outerRadius={100}
-                    dataKey="employees"
-                    label={({ name, employees }) => `${name}: ${employees}`}
-                    labelLine={false}
+          <div className="p-6">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+              <table className={isDark ? 'w-full text-sm text-slate-300' : 'w-full text-sm text-slate-700'}>
+                <thead>
+                  <tr
+                    className={
+                      isDark
+                        ? 'bg-slate-800/60 border-b border-slate-700'
+                        : 'bg-slate-100/60 border-b border-slate-200'
+                    }
                   >
-                    {employeesByGender.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: any) => `${value} emp.`} />
-                </PieChart>
-              </ResponsiveContainer>
+                    {[
+                      { key: 'numero', label: 'Code' },
+                      { key: 'nom', label: 'Département' },
+                      { key: 'region', label: 'Région' },
+                      { key: 'chef_lieu', label: 'Chef-lieu' },
+                      { key: 'circuits', label: 'Circuits' },
+                      { key: 'salaries', label: 'Salariés' },
+                    ].map(col => {
+                      if (col.key === 'chef_lieu') {
+                        return (
+                          <th key={col.key} className="px-4 py-3 text-left">
+                            {col.label}
+                          </th>
+                        );
+                      }
+                      const isActive = deptSortKey === col.key;
+                      return (
+                        <th
+                          key={col.key}
+                          className="px-4 py-3 text-left cursor-pointer select-none"
+                          onClick={() => {
+                            if (deptSortKey === col.key) {
+                              setDeptSortDir(deptSortDir === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setDeptSortKey(col.key as any);
+                              setDeptSortDir('asc');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>{col.label}</span>
+                            {isActive && (
+                              <span className="text-[10px]">
+                                {deptSortDir === 'asc' ? '▲' : '▼'}
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      );
+                    })}
+                    <th className="px-4 py-3 text-center">Détail</th>
+                  </tr>
+                </thead>
+
+                {departments
+                  .filter(d => (d.nombre_circuits || 0) > 0)
+                  .map(d => {
+                    const deptSalaries = salaries.filter(s => s.departements?.includes(d.id));
+                    const circuits = d.nombre_circuits || 0;
+                    return { dept: d, deptSalaries, circuits };
+                  })
+                  .filter(({ dept }) => {
+                    const q = deptSearch.toLowerCase().trim();
+                    if (!q) return true;
+                    return (
+                      dept.numero.toLowerCase().includes(q) ||
+                      dept.nom.toLowerCase().includes(q) ||
+                      dept.region.toLowerCase().includes(q) ||
+                      (dept.chef_lieu || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .sort((a, b) => {
+                    const dir = deptSortDir === 'asc' ? 1 : -1;
+                    if (deptSortKey === 'numero') {
+                      return a.dept.numero.localeCompare(b.dept.numero) * dir;
+                    }
+                    if (deptSortKey === 'nom') {
+                      return a.dept.nom.localeCompare(b.dept.nom) * dir;
+                    }
+                    if (deptSortKey === 'region') {
+                      return a.dept.region.localeCompare(b.dept.region) * dir;
+                    }
+                    if (deptSortKey === 'circuits') {
+                      return (a.circuits - b.circuits) * dir;
+                    }
+                    if (deptSortKey === 'salaries') {
+                      return (a.deptSalaries.length - b.deptSalaries.length) * dir;
+                    }
+                    return 0;
+                  })
+                  .map(({ dept, deptSalaries, circuits }) => {
+                    const expanded = expandedDeptId === dept.id;
+                    return (
+                      <tbody key={dept.id}>
+                        <tr
+                          className={
+                            isDark
+                              ? 'border-b border-slate-700/40 hover:bg-slate-800/40'
+                              : 'border-b border-slate-200/60 hover:bg-slate-50'
+                          }
+                        >
+                          <td className="px-4 py-3 font-mono text-xs">{dept.numero}</td>
+                          <td className="px-4 py-3 font-semibold">{dept.nom}</td>
+                          <td className="px-4 py-3">{dept.region}</td>
+                          <td className="px-4 py-3">{dept.chef_lieu}</td>
+                          <td className="px-4 py-3 text-center">{circuits}</td>
+                          <td className="px-4 py-3 text-center">{deptSalaries.length}</td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() =>
+                                setExpandedDeptId(expanded ? null : dept.id)
+                              }
+                              className={
+                                isDark
+                                  ? 'px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700'
+                                  : 'px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200'
+                              }
+                            >
+                              {expanded ? 'Masquer' : 'Voir salariés'}
+                            </button>
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr
+                            className={
+                              isDark
+                                ? 'border-b border-slate-700/40 bg-slate-900/60'
+                                : 'border-b border-slate-200/60 bg-slate-50'
+                            }
+                          >
+                            <td colSpan={7} className="px-4 py-3">
+                              <div className="text-xs mb-2 font-semibold">
+                                Salariés du département ({deptSalaries.length})
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table
+                                  className={
+                                    isDark
+                                      ? 'w-full text-xs text-slate-300'
+                                      : 'w-full text-xs text-slate-700'
+                                  }
+                                >
+                                  <thead>
+                                    <tr
+                                      className={
+                                        isDark
+                                          ? 'border-b border-slate-700/60 bg-slate-800/80'
+                                          : 'border-b border-slate-200 bg-slate-100'
+                                      }
+                                    >
+                                      <th className="px-2 py-2 text-left">Nom</th>
+                                      <th className="px-2 py-2 text-left">Prénom</th>
+                                      <th className="px-2 py-2 text-left">Service</th>
+                                      <th className="px-2 py-2 text-left">Grade</th>
+                                      <th className="px-2 py-2 text-left">Email</th>
+                                      <th className="px-2 py-2 text-left">3CX</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {deptSalaries.map(emp => {
+                                      const empService = services.find(s => s.id === emp.service);
+                                      const empGrade = grades.find(g => g.id === emp.grade);
+                                      return (
+                                        <tr
+                                          key={emp.id}
+                                          className={
+                                            isDark
+                                              ? 'border-b border-slate-800/60'
+                                              : 'border-b border-slate-200/60'
+                                          }
+                                        >
+                                          <td className="px-2 py-1 font-semibold">{emp.nom}</td>
+                                          <td className="px-2 py-1">{emp.prenom}</td>
+                                          <td className="px-2 py-1">{empService?.nom || '—'}</td>
+                                          <td className="px-2 py-1">{empGrade?.nom || '—'}</td>
+                                          <td className="px-2 py-1">
+                                            <a
+                                              href={`mailto:${emp.mail_professionnel}`}
+                                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                                            >
+                                              {emp.mail_professionnel || 'N/A'}
+                                            </a>
+                                          </td>
+                                          <td className="px-2 py-1">{emp.extension_3cx || 'N/A'}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    );
+                  })}
+              </table>
             </div>
           </div>
         </div>
 
-        {/* TABLEAU DÉTAIL DÉPARTEMENT - PLEINE LARGEUR */}
-        {selectedDept && (
-          <DepartmentDetailTable
-            department={selectedDept}
-            salaries={salaries}
-            services={services}
-            grades={grades}
-            isDark={isDark}
-          />
-        )}
-
-        {/* Effectifs par Département / Service / Grade */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Départements */}
-          <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+        <div
+          className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
             isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-          }`}>
+          }`}
+        >
+          <div className="p-6 border-b border-slate-700/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3
+                className={
+                  isDark
+                    ? 'font-bold text-lg flex items-center gap-2 text-white'
+                    : 'font-bold text-lg flex items-center gap-2 text-slate-900'
+                }
+              >
+                <Users className="w-5 h-5" />
+                Distribution par Genre
+              </h3>
+              <p className={isDark ? 'text-xs mt-1 text-slate-400' : 'text-xs mt-1 text-slate-600'}>
+                Hommes / Femmes globalement et par entité.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div
+              className={
+                isDark
+                  ? 'rounded-xl border border-slate-700/60 bg-slate-900/60 p-4 flex flex-col gap-4'
+                  : 'rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-4'
+              }
+            >
+              <div>
+                <p className={isDark ? 'text-xs font-semibold text-slate-400' : 'text-xs font-semibold text-slate-600'}>
+                  TOTAL
+                </p>
+                <p className={isDark ? 'text-3xl font-bold mt-1 text-white' : 'text-3xl font-bold mt-1 text-slate-900'}>
+                  {totalEmployees} salariés
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className={isDark ? 'text-sm text-slate-200' : 'text-sm text-slate-800'}>
+                        Hommes
+                      </span>
+                    </span>
+                    <span className="font-semibold text-blue-500">{totalHommes}</span>
+                  </div>
+                  <p className={isDark ? 'text-xs text-slate-400' : 'text-xs text-slate-600'}>
+                    {totalEmployees ? Math.round((totalHommes / totalEmployees) * 100) : 0} %
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-rose-500" />
+                      <span className={isDark ? 'text-sm text-slate-200' : 'text-sm text-slate-800'}>
+                        Femmes
+                      </span>
+                    </span>
+                    <span className="font-semibold text-rose-500">{totalFemmes}</span>
+                  </div>
+                  <p className={isDark ? 'text-xs text-slate-400' : 'text-xs text-slate-600'}>
+                    {totalEmployees ? Math.round((totalFemmes / totalEmployees) * 100) : 0} %
+                  </p>
+                </div>
+              </div>
+
+              <div className={isDark ? 'text-xs text-slate-500 mt-2' : 'text-xs text-slate-500 mt-2'}>
+                Ratio H/F : {totalFemmes ? (totalHommes / totalFemmes).toFixed(2) : '—'}
+              </div>
+            </div>
+
+            <div className="lg:col-span-3 space-y-4">
+              <div>
+                <p
+                  className={
+                    isDark ? 'text-sm font-semibold mb-2 text-slate-200' : 'text-sm font-semibold mb-2 text-slate-800'
+                  }
+                >
+                  Genres par Département (Top 10)
+                </p>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={genderStackByDept}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis type="number" stroke={textColor} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke={textColor}
+                        width={110}
+                        tick={{ fontSize: 10 }}
+                      />
+                      <Tooltip formatter={(value: any) => `${value} emp.`} />
+                      <Bar dataKey="hommes" stackId="g1" fill="#3b82f6" />
+                      <Bar dataKey="femmes" stackId="g1" fill="#ec4899" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div>
+                <p
+                  className={
+                    isDark ? 'text-sm font-semibold mb-2 text-slate-200' : 'text-sm font-semibold mb-2 text-slate-800'
+                  }
+                >
+                  Genres par Service (Top 10)
+                </p>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={genderStackByService}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis type="number" stroke={textColor} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke={textColor}
+                        width={110}
+                        tick={{ fontSize: 10 }}
+                      />
+                      <Tooltip formatter={(value: any) => `${value} emp.`} />
+                      <Bar dataKey="hommes" stackId="g2" fill="#3b82f6" />
+                      <Bar dataKey="femmes" stackId="g2" fill="#ec4899" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div>
+                <p
+                  className={
+                    isDark ? 'text-sm font-semibold mb-2 text-slate-200' : 'text-sm font-semibold mb-2 text-slate-800'
+                  }
+                >
+                  Genres par Grade
+                </p>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={genderStackByGrade}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis type="number" stroke={textColor} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke={textColor}
+                        width={110}
+                        tick={{ fontSize: 10 }}
+                      />
+                      <Tooltip formatter={(value: any) => `${value} emp.`} />
+                      <Bar dataKey="hommes" stackId="g3" fill="#3b82f6" />
+                      <Bar dataKey="femmes" stackId="g3" fill="#ec4899" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div
+            className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+              isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+            }`}
+          >
             <div className="p-6 border-b border-slate-700/30">
-              <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
                 🗺️ Employés par Département
               </h3>
             </div>
             <div className="p-6">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={employeesByDept} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                <BarChart
+                  data={employeesByDept}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis type="number" stroke={textColor} />
-                  <YAxis dataKey="name" type="category" stroke={textColor} width={95} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#ffffff', borderRadius: '8px' }} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke={textColor}
+                    width={95}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      borderRadius: '8px',
+                    }}
+                  />
                   <Bar dataKey="employees" fill="#3b82f6" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Services */}
-          <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-            isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-          }`}>
+          <div
+            className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+              isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+            }`}
+          >
             <div className="p-6 border-b border-slate-700/30">
-              <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
                 💼 Employés par Service
               </h3>
             </div>
             <div className="p-6">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={employeesByService} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                <BarChart
+                  data={employeesByService}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis type="number" stroke={textColor} />
-                  <YAxis dataKey="name" type="category" stroke={textColor} width={95} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#ffffff', borderRadius: '8px' }} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke={textColor}
+                    width={95}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      borderRadius: '8px',
+                    }}
+                  />
                   <Bar dataKey="employees" fill="#8b5cf6" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Grades */}
-          <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-            isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-          }`}>
+          <div
+            className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+              isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+            }`}
+          >
             <div className="p-6 border-b border-slate-700/30">
-              <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
                 📊 Employés par Grade
               </h3>
             </div>
             <div className="p-6">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={employeesByGrade} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                <BarChart
+                  data={employeesByGrade}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                   <XAxis type="number" stroke={textColor} />
-                  <YAxis dataKey="name" type="category" stroke={textColor} width={95} tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#ffffff', borderRadius: '8px' }} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke={textColor}
+                    width={95}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                      borderRadius: '8px',
+                    }}
+                  />
                   <Bar dataKey="employees" fill="#10b981" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -709,21 +1367,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* STATS ÉQUIPEMENTS - PLEINE LARGEUR */}
         <EquipmentStats equipment={equipment} instances={instances} salaries={salaries} isDark={isDark} />
 
-        {/* Top Salariés */}
-        <div className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
-          isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
-        }`}>
+        <div
+          className={`rounded-xl border backdrop-blur-xl overflow-hidden ${
+            isDark ? 'bg-slate-900/40 border-slate-700/50' : 'bg-white/40 border-white/60 shadow-sm'
+          }`}
+        >
           <div className="p-6 border-b border-slate-700/30">
-            <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h3 className={isDark ? 'font-bold text-lg text-white' : 'font-bold text-lg text-slate-900'}>
               👥 Top 5 Derniers Salariés
             </h3>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {salaries.slice(0, 5).map((salarie) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+              {salaries.slice(0, 5).map(salarie => (
                 <AnnuaireCard
                   key={salarie.id}
                   salarie={salarie}
@@ -736,6 +1394,17 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {selectedDept && (
+        <DepartmentDetailModal
+          department={selectedDept}
+          salaries={salaries}
+          services={services}
+          grades={grades}
+          isDark={isDark}
+          onClose={() => setSelectedDept(null)}
+        />
+      )}
     </div>
   );
 }

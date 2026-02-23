@@ -79,9 +79,11 @@ class ServiceSerializer(serializers.ModelSerializer):
 # SERIALIZER GRADE
 # ============================================
 class GradeSerializer(serializers.ModelSerializer):
+    echelon = serializers.IntegerField(source='ordre', read_only=True)  # ✅ ALIAS
+    
     class Meta:
         model = Grade
-        fields = ['id', 'nom', 'societe', 'ordre', 'actif', 'date_creation']
+        fields = ['id', 'nom', 'societe', 'ordre', 'echelon', 'actif', 'date_creation']
         read_only_fields = ['date_creation']
 
 # ============================================
@@ -559,35 +561,23 @@ class AmeliorationProposeeSerializer(serializers.ModelSerializer):
 # ============================================
 # SERIALIZER FICHE POSTE DÉTAIL
 # ============================================
+from rest_framework import serializers
+from .models import FichePoste
+
 class FichePosteDetailSerializer(serializers.ModelSerializer):
     service_nom = serializers.CharField(source='service.nom', read_only=True)
     grade_nom = serializers.CharField(source='grade.nom', read_only=True)
     responsable_info = serializers.SerializerMethodField(read_only=True)
-    
-    responsable_service = serializers.PrimaryKeyRelatedField(
-        queryset=Salarie.objects.all(),
-        required=False,
-        allow_null=True
-    )
-    
-    outils = OutilFichePosteSerializer(many=True, read_only=True)
-    ameliorations = AmeliorationProposeeSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = FichePoste
-        fields = [
-            'id', 'titre', 'service', 'service_nom', 'grade', 'grade_nom',
-            'responsable_service', 'responsable_info', 'description', 'taches',
-            'competences_requises', 'moyens_correction', 'problemes',
-            'propositions', 'defauts', 'statut', 'outils', 'ameliorations',
-            'date_creation', 'date_modification'
-        ]
-        read_only_fields = ['date_creation', 'date_modification']
+        fields = '__all__'
     
     def get_responsable_info(self, obj):
         if obj.responsable_service:
             return f"{obj.responsable_service.prenom} {obj.responsable_service.nom}"
         return None
+
 
 # ============================================
 # SERIALIZER FICHE PARAMÈTRES USER

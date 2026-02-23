@@ -29,9 +29,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import UserMeSerializer
-from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
-from django.contrib.contenttypes.models import ContentType
-from .history_utils import log_fiche_poste_action
 
 
 
@@ -869,6 +866,7 @@ class DocumentSalarieViewSet(viewsets.ModelViewSet):
 # VIEWSETS FICHES DE POSTE
 # ============================================================================
 
+
 class FichePosteViewSet(viewsets.ModelViewSet):
     """ViewSet pour fiches de poste"""
     queryset = FichePoste.objects.all()
@@ -877,42 +875,20 @@ class FichePosteViewSet(viewsets.ModelViewSet):
     search_fields = ['titre', 'description']
     ordering_fields = ['titre', 'service']
 
+
     def get_permissions(self):
         """Permissions selon action"""
         if self.action in ['list', 'retrieve']:
             return [IsAuthenticated()]
         return [IsAuthenticated(), CanManageJobEvolution()]
 
+
     def get_queryset(self):
         """Filtre selon permissions"""
         user = self.request.user
+        
         # Tous les utilisateurs authentifiés peuvent voir
         return FichePoste.objects.all()
-
-    def perform_create(self, serializer):
-        """
-        Lors de la création via l'API, on log aussi une entrée d'historique
-        pour que /history/ voie la création (comme l'admin).
-        """
-        fiche = serializer.save()
-        log_fiche_poste_action(
-            user=self.request.user,
-            fiche=fiche,
-            action_flag=ADDITION,
-            change_message="Création via API",
-        )
-
-    def perform_update(self, serializer):
-        """
-        Lors d'une modification via l'API, on log une entrée 'Modification'.
-        """
-        fiche = serializer.save()
-        log_fiche_poste_action(
-            user=self.request.user,
-            fiche=fiche,
-            action_flag=CHANGE,
-            change_message="Modification via API",
-        )
 
 
 
@@ -953,60 +929,6 @@ class AmeliorationProposeeViewSet(viewsets.ModelViewSet):
             return AmeliorationProposee.objects.filter(salarie_proposant=user.profil_salarie)
         
         return AmeliorationProposee.objects.none()
-
-@action(detail=True, methods=['get'])
-def history(self, request, pk=None):
-    """
-    Récupère l'historique des modifications d'une fiche de poste
-    GET /api/fiches-poste/{id}/history/
-    """
-    try:
-        from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
-        from django.contrib.contenttypes.models import ContentType
-        
-        fiche = self.get_object()
-        content_type = ContentType.objects.get_for_model(FichePoste)
-        
-        history = LogEntry.objects.filter(
-            content_type=content_type,
-            object_id=str(pk)
-        ).select_related('user').order_by('-action_time')
-        
-        history_data = []
-        for entry in history:
-            # Gérer le cas où change_message est JSON ou texte
-            change_msg = entry.change_message
-            if isinstance(change_msg, str):
-                try:
-                    import json
-                    change_msg = json.loads(change_msg)
-                except:
-                    pass
-            
-            history_data.append({
-                'id': entry.id,
-                'action_time': entry.action_time.isoformat(),
-                'user': {
-                    'username': entry.user.username,
-                    'full_name': f"{entry.user.first_name} {entry.user.last_name}".strip() or entry.user.username
-                },
-                'action_flag': entry.action_flag,
-                'action_label': 'Création' if entry.action_flag == ADDITION else 
-                               'Modification' if entry.action_flag == CHANGE else 'Suppression',
-                'change_message': str(change_msg)
-            })
-        
-        return Response(history_data, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        return Response({
-            'error': str(e),
-            'detail': error_detail
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 
@@ -1063,69 +985,3 @@ class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
         if self.request.user.is_staff:
             return ImportLog.objects.all()
         return ImportLog.objects.none()
-# ========================================================================
-# HISTORIQUE FICHE DE POSTE
-# ========================================================================
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def fiche_poste_history(request, pk):
-    """
-    Récupère l'historique des modifications d'une fiche de poste
-    GET /api/fiches-poste/{pk}/history/
-    """
-    try:
-        from django.contrib.admin.models import LogEntry, ADDITION, CHANGE, DELETION
-        from django.contrib.contenttypes.models import ContentType
-        import json
-
-        # Vérifier que la fiche existe
-        fiche = get_object_or_404(FichePoste, pk=pk)
-
-        content_type = ContentType.objects.get_for_model(FichePoste)
-
-        history = (
-            LogEntry.objects
-            .filter(content_type=content_type, object_id=str(pk))
-            .select_related('user')
-            .order_by('-action_time')
-        )
-
-        history_data = []
-
-        for entry in history:
-            # Gérer le cas où change_message est JSON ou texte
-            change_msg = entry.change_message
-            if isinstance(change_msg, str):
-                try:
-                    change_msg = json.loads(change_msg)
-                except Exception:
-                    pass
-
-            history_data.append({
-                'id': entry.id,
-                'action_time': entry.action_time.isoformat(),
-                'user': {
-                    'username': entry.user.username,
-                    'full_name': f"{entry.user.first_name} {entry.user.last_name}".strip() or entry.user.username,
-                },
-                'action_flag': entry.action_flag,
-                'action_label': (
-                    'Création' if entry.action_flag == ADDITION
-                    else 'Modification' if entry.action_flag == CHANGE
-                    else 'Suppression'
-                ),
-                'change_message': str(change_msg),
-            })
-
-        return Response(history_data, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        import traceback
-        error_detail = traceback.format_exc()
-        return Response(
-            {
-                'error': str(e),
-                'detail': error_detail,
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )

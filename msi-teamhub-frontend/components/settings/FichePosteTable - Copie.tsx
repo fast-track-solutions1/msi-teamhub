@@ -1,7 +1,8 @@
 // components/settings/fiches/FichePosteTable.tsx
 
 'use client';
-import { Edit2, Trash2, CheckCircle, XCircle, ArrowUp, ArrowDown, Printer, Eye } from 'lucide-react';
+
+import { Edit2, Trash2, CheckCircle, XCircle, ArrowUp, ArrowDown, Printer } from 'lucide-react';
 import { FichePoste } from '@/lib/ficheposte-api';
 import { Service } from '@/lib/api/service-api';
 import { Grade } from '@/lib/grade-api';
@@ -12,12 +13,10 @@ interface FichePosteTableProps {
   grades: Grade[];
   onEdit: (fiche: FichePoste) => void;
   onDelete: (id: number) => void;
-  onView?: (fiche: FichePoste) => void;  // ← NOUVELLE LIGNE
   sortField?: 'titre' | 'service' | 'statut' | 'datecreation';
   sortOrder?: 'asc' | 'desc';
   onSort?: (field: 'titre' | 'service' | 'statut' | 'datecreation') => void;
 }
-
 
 export default function FichePosteTable({
   fiches,
@@ -25,12 +24,10 @@ export default function FichePosteTable({
   grades,
   onEdit,
   onDelete,
-  onView,  // ← NOUVELLE LIGNE
   sortField,
   sortOrder,
   onSort,
 }: FichePosteTableProps) {
-
   const getGradeNom = (gradeId: number) => {
     return grades.find((g) => g.id === gradeId)?.nom || 'N/A';
   };
@@ -199,18 +196,6 @@ export default function FichePosteTable({
                     >
                       <Edit2 size={18} />
                     </button>
-                    
-                    {/* Bouton Voir détails */}
-                    {onView && (
-                      <button
-                        onClick={() => onView(fiche)}
-                        className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-400 transition-colors"
-                        title="Voir les détails"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    )}
-
 
                     {/* Bouton Supprimer */}
                     <button
