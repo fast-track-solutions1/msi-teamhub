@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { CheckCircle, XCircle, MapPin, Users } from 'lucide-react';
 import { Departement } from '@/lib/departement-api';
 import { Societe } from '@/lib/societe-api';
 
@@ -15,7 +15,8 @@ export default function DepartmentDirectoryTable({
   societes,
   onDepartmentClick,
 }: DepartmentDirectoryTableProps) {
-  const getSocieteName = (id: number) => societes.find((s) => s.id === id)?.nom || 'N/A';
+  const getSocieteName = (id: number) =>
+    societes.find((s) => s.id === id)?.nom || 'N/A';
 
   if (departements.length === 0) {
     return (
@@ -52,6 +53,9 @@ export default function DepartmentDirectoryTable({
               Circuits
             </th>
             <th className="px-6 py-4 text-center text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
+              Chauffeurs
+            </th>
+            <th className="px-6 py-4 text-center text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
               Statut
             </th>
             <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -59,6 +63,7 @@ export default function DepartmentDirectoryTable({
             </th>
           </tr>
         </thead>
+
         <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
           {departements.map((dept) => (
             <tr
@@ -66,7 +71,7 @@ export default function DepartmentDirectoryTable({
               className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               onClick={() => onDepartmentClick?.(dept)}
             >
-              {/* Numéro avec icône */}
+              {/* Numéro */}
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                   <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
@@ -98,10 +103,18 @@ export default function DepartmentDirectoryTable({
                 {getSocieteName(dept.societe)}
               </td>
 
-              {/* Nombre de circuits */}
+              {/* Circuits */}
               <td className="px-6 py-4 text-center">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 text-xs font-semibold">
-                  {dept.nombre_circuits}
+                <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 text-xs font-semibold">
+                  {dept.nombre_circuits ?? 0}
+                </span>
+              </td>
+
+              {/* Chauffeurs */}
+              <td className="px-6 py-4 text-center">
+                <span className="inline-flex items-center justify-center gap-1 min-w-[40px] h-8 px-2 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                  <Users className="h-3.5 w-3.5" />
+                  {dept.nombre_chauffeurs ?? 0}
                 </span>
               </td>
 

@@ -140,7 +140,7 @@ class SocieteAdmin(BatchImportExportMixin, admin.ModelAdmin):
 
 @admin.register(Departement)
 class DepartementAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'nom', 'region', 'chef_lieu', 'societe', 'nombre_circuits', 'actif')
+    list_display = ('numero', 'nom', 'region', 'chef_lieu', 'societe', 'nombre_circuits', 'nombre_chauffeurs', 'actif')
     list_filter = ('actif', 'societe', 'region')
     search_fields = ('numero', 'nom', 'region', 'chef_lieu')
     readonly_fields = ('date_creation',)

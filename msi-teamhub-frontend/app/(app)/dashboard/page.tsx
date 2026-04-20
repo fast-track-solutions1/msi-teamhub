@@ -14,7 +14,17 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import { Loader2, Package2, Users, X as XIcon, MapPin } from 'lucide-react';
+import {
+  Loader2,
+  Package2,
+  Users,
+  X as XIcon,
+  MapPin,
+  Building2,
+  Hash,
+  Briefcase,
+  Navigation,
+} from 'lucide-react';
 
 import { salarieApi, Salarie } from '@/lib/salarie-api';
 import { departementApi, Departement } from '@/lib/departement-api';
@@ -23,11 +33,11 @@ import { gradeApi, Grade } from '@/lib/grade-api';
 import { equipementApi, Equipment, EquipmentInstance } from '@/lib/equipement-api';
 import { societeApi, Societe } from '@/lib/societe-api';
 import { getDepartementCoords } from '@/lib/departements-coords';
-
+import DepartmentDirectoryDetailModal from '@/app/(app)/annuaires/departements/components/DepartmentDirectoryDetailModal';
 import AnnuaireCard from '@/app/(app)/annuaires/salaries/components/AnnuaireCard';
 
 // ============================================================================
-// CARTE INTERACTIVE (France + markers verts + click -> modal)
+// CARTE INTERACTIVE (France + markers verts + hover popup + click -> modal)
 // ============================================================================
 
 interface InteractiveMapProps {
@@ -37,7 +47,12 @@ interface InteractiveMapProps {
   onDepartmentClick: (dept: Departement) => void;
 }
 
-function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: InteractiveMapProps) {
+function InteractiveMap({
+  isDark,
+  departments,
+  salaries,
+  onDepartmentClick,
+}: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
 
@@ -47,7 +62,7 @@ function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: In
     map.current = L.map(mapContainer.current, {
       zoomControl: true,
       attributionControl: true,
-    }).setView([46.8, 2.6], 5.8); // focus France
+    }).setView([46.8, 2.6], 5.8);
 
     L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
@@ -55,13 +70,15 @@ function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: In
       minZoom: 4,
     }).addTo(map.current);
 
-    const depsWithCircuits = departments.filter(d => (d.nombre_circuits || 0) > 0);
+    const depsWithCircuits = departments.filter(
+      d => (d.nombre_circuits || 0) > 0,
+    );
 
-    const greenIcon = new L.Icon({
+    const pistachioIcon = new L.Icon({
       iconUrl:
-        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
       iconRetinaUrl:
-        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
       shadowUrl:
         'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       iconSize: [25, 41],
@@ -74,17 +91,174 @@ function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: In
       const coords = getDepartementCoords(dept.numero);
       if (!coords) return;
 
-      const deptSalaries = salaries.filter((s: Salarie) => s.departements?.includes(dept.id));
+      const deptSalaries = salaries.filter((s: Salarie) =>
+        s.departements?.includes(dept.id),
+      );
       const circuits = dept.nombre_circuits || 0;
+      const chauffeurs = dept.nombre_chauffeurs || 0;
 
-      const marker = L.marker([coords.lat, coords.lng], { icon: greenIcon }).addTo(
-        map.current!,
+      const marker = L.marker([coords.lat, coords.lng], {
+        icon: pistachioIcon,
+      }).addTo(map.current!);
+
+          marker.bindPopup(
+            `
+    <div style="
+      min-width:360px;
+      max-width:400px;
+      border-radius:18px;
+      padding:18px;
+      background:${
+        isDark
+          ? 'linear-gradient(135deg, rgba(15,23,42,0.98), rgba(15,118,110,0.95))'
+          : 'linear-gradient(135deg, rgba(219,234,254,0.96), rgba(167,243,208,0.96))'
+      };
+      color:${isDark ? '#e2e8f0' : '#0f172a'};
+      border:1px solid ${isDark ? '#14b8a6' : '#bfdbfe'};
+      box-shadow:0 16px 40px rgba(15,23,42,0.26);
+      font-family:Inter,system-ui,sans-serif;
+    ">
+            <div style="text-align:center;margin-bottom:14px;">
+              <div style="
+                display:inline-flex;
+                align-items:center;
+                justify-content:center;
+                min-width:36px;
+                height:36px;
+                padding:0 10px;
+                border-radius:9999px;
+                margin-bottom:8px;
+                font-size:12px;
+                font-weight:800;
+                letter-spacing:.08em;
+                background:${isDark ? 'rgba(16,185,129,.14)' : '#dcfce7'};
+                color:${isDark ? '#6ee7b7' : '#047857'};
+              ">
+                ${dept.numero}
+              </div>
+
+              <div style="
+                font-size:16px;
+                font-weight:800;
+                line-height:1.2;
+                margin-bottom:4px;
+              ">
+                ${dept.nom}
+              </div>
+
+              <div style="
+                font-size:12px;
+                color:${isDark ? '#94a3b8' : '#64748b'};
+              ">
+                ${dept.region}
+              </div>
+            </div>
+
+            <div style="
+              display:grid;
+              grid-template-columns:repeat(3, minmax(90px, 1fr));
+              gap:12px;
+            ">
+              <div style="
+                border-radius:14px;
+                padding:12px 10px;
+                text-align:center;
+                background:${isDark ? 'rgba(15,23,42,.72)' : '#f8fafc'};
+                border:1px solid ${isDark ? 'rgba(51,65,85,.85)' : '#e2e8f0'};
+              ">
+                <div style="
+                  font-size:11px;
+                  font-weight:700;
+                  text-transform:uppercase;
+                  letter-spacing:.08em;
+                  color:${isDark ? '#86efac' : '#15803d'};
+                  margin-bottom:6px;
+                ">
+                  Circuits
+                </div>
+                <div style="
+                  font-size:18px;
+                  font-weight:800;
+                  line-height:1;
+                ">
+                  ${circuits}
+                </div>
+              </div>
+
+              <div style="
+                border-radius:14px;
+                padding:12px 10px;
+                text-align:center;
+                background:${isDark ? 'rgba(15,23,42,.72)' : '#f8fafc'};
+                border:1px solid ${isDark ? 'rgba(51,65,85,.85)' : '#e2e8f0'};
+              ">
+                <div style="
+                  font-size:11px;
+                  font-weight:700;
+                  text-transform:uppercase;
+                  letter-spacing:.08em;
+                  color:${isDark ? '#93c5fd' : '#2563eb'};
+                  margin-bottom:6px;
+                ">
+                  Salariés
+                </div>
+                <div style="
+                  font-size:18px;
+                  font-weight:800;
+                  line-height:1;
+                ">
+                  ${deptSalaries.length}
+                </div>
+              </div>
+
+              <div style="
+                border-radius:14px;
+                padding:12px 10px;
+                text-align:center;
+                background:${isDark ? 'rgba(15,23,42,.72)' : '#f8fafc'};
+                border:1px solid ${isDark ? 'rgba(51,65,85,.85)' : '#e2e8f0'};
+              ">
+                <div style="
+                  font-size:11px;
+                  font-weight:700;
+                  text-transform:uppercase;
+                  letter-spacing:.08em;
+                  color:${isDark ? '#fca5a5' : '#b91c1c'};
+                  margin-bottom:6px;
+                ">
+                  Chauffeurs
+                </div>
+                <div style="
+                  font-size:18px;
+                  font-weight:800;
+                  line-height:1;
+                ">
+                  ${chauffeurs}
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+        {
+          className: 'wow-dept-popup',
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          offset: [0, -24],
+        },
       );
 
-      marker.on('click', () => onDepartmentClick(dept));
-      marker.bindPopup(
-        `<strong>${dept.nom}</strong><br/>Circuits: ${circuits}<br/>Salariés: ${deptSalaries.length}`,
-      );
+      marker.on('mouseover', () => {
+        marker.openPopup();
+      });
+
+      marker.on('mouseout', () => {
+        marker.closePopup();
+      });
+
+      marker.on('click', () => {
+        onDepartmentClick(dept);
+      });
     });
 
     return () => {
@@ -96,230 +270,36 @@ function InteractiveMap({ isDark, departments, salaries, onDepartmentClick }: In
   }, [departments, salaries, onDepartmentClick, isDark]);
 
   return (
-    <div
-      ref={mapContainer}
-      className="w-full h-full rounded-lg shadow-lg border border-slate-300 dark:border-slate-600"
-    />
-  );
-}
+    <div className="relative w-full h-full">
+      <style jsx global>{`
+        .wow-dept-popup .leaflet-popup-content-wrapper {
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
+          border-radius: 18px;
+        }
 
-// ============================================================================
-// MODAL DÉTAIL DÉPARTEMENT
-// ============================================================================
+        .wow-dept-popup .leaflet-popup-content {
+          margin: 0;
+        }
 
-interface DepartmentDetailModalProps {
-  department: Departement;
-  salaries: Salarie[];
-  services: Service[];
-  grades: Grade[];
-  isDark: boolean;
-  onClose: () => void;
-}
+        .wow-dept-popup .leaflet-popup-tip {
+          background: ${isDark ? '#0f172a' : '#ffffff'};
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
 
-function DepartmentDetailModal({
-  department,
-  salaries,
-  services,
-  grades,
-  isDark,
-  onClose,
-}: DepartmentDetailModalProps) {
-  const deptSalaries = salaries.filter(s => s.departements?.includes(department.id));
-  const coords = getDepartementCoords(department.numero);
+        .wow-dept-popup .leaflet-popup-close-button {
+          display: none;
+        }
+      `}</style>
 
-  const salariesByService = services
-    .map(svc => {
-      const employees = deptSalaries.filter(s => s.service === svc.id);
-      return { service: svc.nom, employees };
-    })
-    .filter(s => s.employees.length > 0);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div
-        className={`relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl ${
-          isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
-        }`}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/40">
-          <div>
-            <h3 className={isDark ? 'font-bold text-xl text-white' : 'font-bold text-xl text-slate-900'}>
-              📍 {department.numero} - {department.nom}
-            </h3>
-            <p className={isDark ? 'text-xs mt-1 text-slate-400' : 'text-xs mt-1 text-slate-600'}>
-              Détail complet du département (circuits, salariés, services, grades).
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className={
-              isDark
-                ? 'inline-flex items-center justify-center rounded-full p-1.5 text-slate-300 hover:bg-slate-800'
-                : 'inline-flex items-center justify-center rounded-full p-1.5 text-slate-500 hover:bg-slate-100'
-            }
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-60px)]">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-blue-50'}>
-              <p className={isDark ? 'text-xs font-bold text-blue-400' : 'text-xs font-bold text-blue-600'}>
-                RÉGION
-              </p>
-              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
-                {department.region}
-              </p>
-            </div>
-            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-emerald-50'}>
-              <p
-                className={
-                  isDark ? 'text-xs font-bold text-emerald-400' : 'text-xs font-bold text-emerald-600'
-                }
-              >
-                CHEF-LIEU
-              </p>
-              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
-                {department.chef_lieu}
-              </p>
-            </div>
-            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-purple-50'}>
-              <p
-                className={
-                  isDark ? 'text-xs font-bold text-purple-400' : 'text-xs font-bold text-purple-600'
-                }
-              >
-                CODE
-              </p>
-              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
-                {department.numero}
-              </p>
-            </div>
-            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-orange-50'}>
-              <p
-                className={
-                  isDark ? 'text-xs font-bold text-orange-400' : 'text-xs font-bold text-orange-600'
-                }
-              >
-                CIRCUITS
-              </p>
-              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
-                {department.nombre_circuits}
-              </p>
-            </div>
-            <div className={isDark ? 'p-4 rounded-lg bg-slate-800/50' : 'p-4 rounded-lg bg-pink-50'}>
-              <p className={isDark ? 'text-xs font-bold text-pink-400' : 'text-xs font-bold text-pink-600'}>
-                SALARIÉS
-              </p>
-              <p className={isDark ? 'font-bold text-lg mt-2 text-white' : 'font-bold text-lg mt-2 text-slate-900'}>
-                {deptSalaries.length}
-              </p>
-            </div>
-          </div>
-
-          {coords && (
-            <div
-              className={
-                isDark
-                  ? 'p-4 rounded-lg border bg-slate-800/30 border-slate-700'
-                  : 'p-4 rounded-lg border bg-slate-50 border-slate-200'
-              }
-            >
-              <p className={isDark ? 'text-sm font-semibold text-white' : 'text-sm font-semibold text-slate-900'}>
-                📍 Coordonnées GPS: {coords.lat}, {coords.lng}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-6">
-            {salariesByService.map(serviceGroup => (
-              <div key={serviceGroup.service}>
-                <h4 className={isDark ? 'font-bold text-lg mb-3 text-white' : 'font-bold text-lg mb-3 text-slate-900'}>
-                  💼 {serviceGroup.service} ({serviceGroup.employees.length} emp.)
-                </h4>
-
-                {grades.map(grade => {
-                  const gradeEmployees = serviceGroup.employees.filter(s => s.grade === grade.id);
-                  if (gradeEmployees.length === 0) return null;
-
-                  return (
-                    <div key={`${serviceGroup.service}-${grade.id}`} className="mb-4">
-                      <p
-                        className={
-                          isDark ? 'text-sm font-semibold mb-2 text-slate-300' : 'text-sm font-semibold mb-2 text-slate-700'
-                        }
-                      >
-                        📊 {grade.nom} ({gradeEmployees.length})
-                      </p>
-                      <div className="overflow-x-auto">
-                        <table
-                          className={
-                            isDark ? 'w-full text-xs text-slate-300' : 'w-full text-xs text-slate-700'
-                          }
-                        >
-                          <thead>
-                            <tr
-                              className={
-                                isDark
-                                  ? 'border-b border-slate-700/50 bg-slate-800/30'
-                                  : 'border-b border-slate-200 bg-slate-100/50'
-                              }
-                            >
-                              <th className="px-3 py-2 text-left">Nom</th>
-                              <th className="px-3 py-2 text-left">Prénom</th>
-                              <th className="px-3 py-2 text-left">Matricule</th>
-                              <th className="px-3 py-2 text-left">Email</th>
-                              <th className="px-3 py-2 text-left">3CX</th>
-                              <th className="px-3 py-2 text-left">Service</th>
-                              <th className="px-3 py-2 text-left">Grade</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {gradeEmployees.map(emp => {
-                              const empService = services.find(s => s.id === emp.service);
-                              const empGrade = grades.find(g => g.id === emp.grade);
-                              return (
-                                <tr
-                                  key={emp.id}
-                                  className={
-                                    isDark
-                                      ? 'border-b border-slate-700/30'
-                                      : 'border-b border-slate-200/50'
-                                  }
-                                >
-                                  <td className="px-3 py-2 font-semibold">{emp.nom}</td>
-                                  <td className="px-3 py-2">{emp.prenom}</td>
-                                  <td className="px-3 py-2 font-mono text-xs">{emp.matricule}</td>
-                                  <td className="px-3 py-2">
-                                    <a
-                                      href={`mailto:${emp.mail_professionnel}`}
-                                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                      {emp.mail_professionnel || 'N/A'}
-                                    </a>
-                                  </td>
-                                  <td className="px-3 py-2">{emp.extension_3cx || 'N/A'}</td>
-                                  <td className="px-3 py-2">{empService?.nom || '—'}</td>
-                                  <td className="px-3 py-2">{empGrade?.nom || '—'}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        ref={mapContainer}
+        className="w-full h-full rounded-lg shadow-lg border border-slate-300 dark:border-slate-600"
+      />
     </div>
   );
 }
-
 // ============================================================================
 // STATS ÉQUIPEMENTS
 // ============================================================================
@@ -595,7 +575,7 @@ export default function DashboardPage() {
 
   const [deptSearch, setDeptSearch] = useState('');
   const [deptSortKey, setDeptSortKey] = useState<
-    'numero' | 'nom' | 'region' | 'circuits' | 'salaries'
+    'numero' | 'nom' | 'region' | 'circuits' | 'chauffeurs' | 'salaries'
   >('nom');
   const [deptSortDir, setDeptSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandedDeptId, setExpandedDeptId] = useState<number | null>(null);
@@ -889,6 +869,7 @@ export default function DashboardPage() {
                       { key: 'region', label: 'Région' },
                       { key: 'chef_lieu', label: 'Chef-lieu' },
                       { key: 'circuits', label: 'Circuits' },
+                      { key: 'chauffeurs', label: 'Chauffeurs' },
                       { key: 'salaries', label: 'Salariés' },
                     ].map(col => {
                       if (col.key === 'chef_lieu') {
@@ -932,7 +913,8 @@ export default function DashboardPage() {
                   .map(d => {
                     const deptSalaries = salaries.filter(s => s.departements?.includes(d.id));
                     const circuits = d.nombre_circuits || 0;
-                    return { dept: d, deptSalaries, circuits };
+                    const chauffeurs = d.nombre_chauffeurs || 0;
+                    return { dept: d, deptSalaries, circuits, chauffeurs };
                   })
                   .filter(({ dept }) => {
                     const q = deptSearch.toLowerCase().trim();
@@ -958,12 +940,15 @@ export default function DashboardPage() {
                     if (deptSortKey === 'circuits') {
                       return (a.circuits - b.circuits) * dir;
                     }
+                      if (deptSortKey === 'chauffeurs') {
+                      return (a.chauffeurs - b.chauffeurs) * dir;
+                    }
                     if (deptSortKey === 'salaries') {
                       return (a.deptSalaries.length - b.deptSalaries.length) * dir;
                     }
                     return 0;
                   })
-                  .map(({ dept, deptSalaries, circuits }) => {
+                  .map(({ dept, deptSalaries, circuits, chauffeurs }) => {
                     const expanded = expandedDeptId === dept.id;
                     return (
                       <tbody key={dept.id}>
@@ -974,26 +959,40 @@ export default function DashboardPage() {
                               : 'border-b border-slate-200/60 hover:bg-slate-50'
                           }
                         >
-                          <td className="px-4 py-3 font-mono text-xs">{dept.numero}</td>
-                          <td className="px-4 py-3 font-semibold">{dept.nom}</td>
-                          <td className="px-4 py-3">{dept.region}</td>
-                          <td className="px-4 py-3">{dept.chef_lieu}</td>
-                          <td className="px-4 py-3 text-center">{circuits}</td>
-                          <td className="px-4 py-3 text-center">{deptSalaries.length}</td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() =>
-                                setExpandedDeptId(expanded ? null : dept.id)
-                              }
-                              className={
-                                isDark
-                                  ? 'px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700'
-                                  : 'px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200'
-                              }
-                            >
-                              {expanded ? 'Masquer' : 'Voir salariés'}
-                            </button>
-                          </td>
+<td className="px-4 py-3 font-mono text-xs">{dept.numero}</td>
+<td className="px-4 py-3 font-semibold">{dept.nom}</td>
+<td className="px-4 py-3">{dept.region}</td>
+<td className="px-4 py-3">{dept.chef_lieu}</td>
+<td className="px-4 py-3 text-center">{circuits}</td>
+
+<td className="px-4 py-3 text-center">
+  <span
+    className={
+      isDark
+        ? 'inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-500/20 text-blue-300 text-xs font-semibold'
+        : 'inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-700 text-xs font-semibold'
+    }
+  >
+    <Users className="w-3.5 h-3.5" />
+    {chauffeurs}
+  </span>
+</td>
+
+<td className="px-4 py-3 text-center">{deptSalaries.length}</td>
+<td className="px-4 py-3 text-center">
+  <button
+    onClick={() =>
+      setExpandedDeptId(expanded ? null : dept.id)
+    }
+    className={
+      isDark
+        ? 'px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-100 border border-slate-600 hover:bg-slate-700'
+        : 'px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200'
+    }
+  >
+    {expanded ? 'Masquer' : 'Voir salariés'}
+  </button>
+</td>
                         </tr>
                         {expanded && (
                           <tr
@@ -1003,7 +1002,7 @@ export default function DashboardPage() {
                                 : 'border-b border-slate-200/60 bg-slate-50'
                             }
                           >
-                            <td colSpan={7} className="px-4 py-3">
+                            <td colSpan={8} className="px-4 py-3">
                               <div className="text-xs mb-2 font-semibold">
                                 Salariés du département ({deptSalaries.length})
                               </div>
@@ -1395,16 +1394,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {selectedDept && (
-        <DepartmentDetailModal
-          department={selectedDept}
-          salaries={salaries}
-          services={services}
-          grades={grades}
-          isDark={isDark}
-          onClose={() => setSelectedDept(null)}
-        />
-      )}
+{selectedDept && (
+  <DepartmentDirectoryDetailModal
+    departement={selectedDept}
+    societes={societes}
+    salaries={salaries}
+    isOpen={true}
+    onClose={() => setSelectedDept(null)}
+  />
+)}
     </div>
   );
 }
+
+

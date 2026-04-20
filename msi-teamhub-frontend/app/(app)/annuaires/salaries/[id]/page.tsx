@@ -668,9 +668,17 @@ export default function SalarieDetailPage({
                         <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                           {dept.region}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {dept.nombre_circuits} circuit{dept.nombre_circuits !== 1 ? 's' : ''}
-                        </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-medium">
+                              <MapPin size={12} />
+                              {dept.nombre_circuits} circuit{dept.nombre_circuits !== 1 ? 's' : ''}
+                            </span>
+
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                              <Users size={12} />
+                              {dept.nombre_chauffeurs} chauffeur{dept.nombre_chauffeurs !== 1 ? 's' : ''}
+                            </span>
+                          </div>
                       </div>
                     );
                   })

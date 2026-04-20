@@ -224,17 +224,20 @@ class ServiceViewSet(viewsets.ModelViewSet):
                         depts = [salarie.departement] if salarie.departement else []
                 else:
                     depts = []
-                
+
                 # Construire les infos de département
                 for dept in depts:
                     dept_info = {
                         'id': dept.id,
+                        'numero': getattr(dept, 'numero', ''),
                         'nom': dept.nom,
                         'region': getattr(dept, 'region', 'N/A'),
+                        'cheflieu': getattr(dept, 'chef_lieu', ''),
                         'circuits_count': getattr(dept, 'nombre_circuits', 0),
+                        'chauffeurs_count': getattr(dept, 'nombre_chauffeurs', 0),
                     }
                     departements_data.append(dept_info)
-                    
+
             except Exception as e:
                 print(f"❌ Erreur: {e}")
                 departements_data = []
@@ -243,6 +246,7 @@ class ServiceViewSet(viewsets.ModelViewSet):
             total_circuits = sum(
                 d.get('circuits_count', 0) for d in departements_data
             )
+            total_chauffeurs = sum(d.get('chauffeurs_count', 0) for d in departements_data)
             
             return {
                 'id': salarie.id,
@@ -258,6 +262,7 @@ class ServiceViewSet(viewsets.ModelViewSet):
                 'statut': salarie.statut,
                 'departements': departements_data,
                 'total_circuits': total_circuits,
+                'totalchauffeurs': total_chauffeurs,
                 'children': [
                     build_node(child)
                     for child in service_salaries

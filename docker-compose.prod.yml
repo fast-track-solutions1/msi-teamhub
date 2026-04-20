@@ -1,0 +1,23 @@
+services:
+  web:
+    build: .
+    container_name: msi_web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn msi_backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    env_file:
+      - .env.prod
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - backend
+
+volumes:
+  static_volume:
+  media_volume:
+
+networks:
+  backend:
+    driver: bridge

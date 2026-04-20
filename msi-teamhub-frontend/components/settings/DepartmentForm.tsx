@@ -8,18 +8,28 @@ import { Societe } from '@/lib/societe-api';
 interface DepartmentFormProps {
   departement?: Departement | null;
   societes: Societe[];
-  onSave: (data: Omit<Departement, 'id' | 'date_creation' | 'circuits' | 'label_complet'> | Partial<Departement>) => Promise<void>;
+  onSave: (
+    data:
+      | Omit<Departement, 'id' | 'date_creation' | 'circuits' | 'label_complet'>
+      | Partial<Departement>
+  ) => Promise<void>;
   onCancel: () => void;
 }
 
-export default function DepartmentForm({ departement, societes, onSave, onCancel }: DepartmentFormProps) {
+export default function DepartmentForm({
+  departement,
+  societes,
+  onSave,
+  onCancel,
+}: DepartmentFormProps) {
   const [formData, setFormData] = useState({
     numero: departement?.numero || '',
     nom: departement?.nom || '',
     region: departement?.region || '',
     chef_lieu: departement?.chef_lieu || '',
     societe: departement?.societe || (societes.length > 0 ? societes[0].id : 0),
-    nombre_circuits: departement?.nombre_circuits || 1,
+    nombre_circuits: departement?.nombre_circuits ?? 1,
+    nombre_chauffeurs: departement?.nombre_chauffeurs ?? 0,
     actif: departement?.actif ?? true,
   });
 
@@ -27,6 +37,8 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
   useEffect(() => {
     if (departement) {
       const nombreCircuits = departement.nombre_circuits ?? 1;
+      const nombreChauffeurs = departement.nombre_chauffeurs ?? 0;
+
       setFormData({
         numero: departement.numero,
         nom: departement.nom,
@@ -34,11 +46,14 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
         chef_lieu: departement.chef_lieu || '',
         societe: departement.societe,
         nombre_circuits: nombreCircuits,
+        nombre_chauffeurs: nombreChauffeurs,
         actif: departement.actif,
       });
+
       console.log('📝 Formulaire initialisé avec:', {
         ...departement,
-        nombre_circuits: nombreCircuits
+        nombre_circuits: nombreCircuits,
+        nombre_chauffeurs: nombreChauffeurs,
       });
     }
   }, [departement]);
@@ -54,7 +69,11 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
         ...prev,
         [name]: (e.target as HTMLInputElement).checked,
       }));
-    } else if (name === 'societe' || name === 'nombre_circuits') {
+    } else if (
+      name === 'societe' ||
+      name === 'nombre_circuits' ||
+      name === 'nombre_chauffeurs'
+    ) {
       const numValue = Number(value);
       console.log(`📝 Changement ${name}:`, numValue);
       setFormData((prev) => ({
@@ -91,6 +110,11 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
 
     if (formData.nombre_circuits < 1 || isNaN(formData.nombre_circuits)) {
       setError('Le nombre de circuits doit être au moins 1');
+      return;
+    }
+
+    if (formData.nombre_chauffeurs < 0 || isNaN(formData.nombre_chauffeurs)) {
+      setError('Le nombre de chauffeurs doit être au moins 0');
       return;
     }
 
@@ -152,7 +176,9 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
                 placeholder="Ex: 01, 75, 2A..."
               />
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {departement ? '⚠️ Le numéro ne peut pas être modifié' : '2 ou 3 caractères (01-95, 2A, 2B, 971-976)'}
+                {departement
+                  ? '⚠️ Le numéro ne peut pas être modifié'
+                  : '2 ou 3 caractères (01-95, 2A, 2B, 971-976)'}
               </p>
             </div>
 
@@ -227,12 +253,12 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
               </select>
               {societes.length === 0 && (
                 <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                  ⚠️ Aucune société disponible. Créez-en une d'abord.
+                  ⚠️ Aucune société disponible. Créez-en une d&apos;abord.
                 </p>
               )}
             </div>
 
-            {/* Nombre de circuits - CHAMP CLÉ */}
+            {/* Nombre de circuits */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Nombre de circuits *
@@ -254,6 +280,28 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
               </p>
             </div>
 
+            {/* Nombre de chauffeurs */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Nombre de chauffeurs
+              </label>
+              <input
+                type="number"
+                name="nombre_chauffeurs"
+                value={formData.nombre_chauffeurs}
+                onChange={handleChange}
+                disabled={loading}
+                min="0"
+                step="1"
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors"
+                placeholder="0"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Chauffeurs affectés à ce département:{' '}
+                <strong>{formData.nombre_chauffeurs}</strong>
+              </p>
+            </div>
+
             {/* Actif */}
             <div className="flex items-center gap-3 pt-7">
               <input
@@ -265,7 +313,10 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
                 disabled={loading}
                 className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
               />
-              <label htmlFor="actif" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+              <label
+                htmlFor="actif"
+                className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
                 Département actif
               </label>
             </div>
@@ -274,9 +325,11 @@ export default function DepartmentForm({ departement, societes, onSave, onCancel
           {/* 💡 Info */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
             <p className="text-sm text-blue-900 dark:text-blue-200">
-              <strong>💡 Astuce :</strong> Le numéro de département doit être unique par société.
+              <strong>💡 Astuce :</strong> Le numéro de département doit être unique par
+              société.
               <br />
-              Utilisez les codes officiels : 01-95 pour la métropole, 2A et 2B pour la Corse, 971-976 pour l'Outre-mer.
+              Utilisez les codes officiels : 01-95 pour la métropole, 2A et 2B pour la
+              Corse, 971-976 pour l&apos;Outre-mer.
             </p>
           </div>
 

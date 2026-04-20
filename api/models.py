@@ -37,6 +37,7 @@ class Departement(models.Model):
     chef_lieu = models.CharField(max_length=100, null=True, blank=True)
     societe = models.ForeignKey(Societe, on_delete=models.CASCADE, related_name='departements')
     nombre_circuits = models.IntegerField(default=1, validators=[MinValueValidator(0)])
+    nombre_chauffeurs = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
 

@@ -225,6 +225,14 @@ export default function DepartmentDirectoryDetailModal({
                   {departement.nombre_circuits}
                 </div>
               </div>
+                  <div>
+      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+        Chauffeurs associés
+      </label>
+      <div className="inline-flex items-center justify-center h-8 px-3 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 font-semibold gap-1">
+        {departement.nombre_chauffeurs ?? 0}
+      </div>
+    </div>
             </div>
           </section>
 

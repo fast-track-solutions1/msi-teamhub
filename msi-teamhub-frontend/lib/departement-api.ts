@@ -21,6 +21,7 @@ export interface Departement {
   chef_lieu?: string;
   societe: number;
   nombre_circuits: number;
+  nombre_chauffeurs: number;
   actif: boolean;
   date_creation: string;
   circuits?: Circuit[];

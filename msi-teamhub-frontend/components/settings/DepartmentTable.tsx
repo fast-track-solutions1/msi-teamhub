@@ -1,6 +1,14 @@
 'use client';
 
-import { Edit2, Trash2, CheckCircle, XCircle, ArrowUp, ArrowDown, MapPin } from 'lucide-react';
+import {
+  Edit2,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  ArrowUp,
+  ArrowDown,
+  MapPin,
+} from 'lucide-react';
 import { Departement } from '@/lib/departement-api';
 import { Societe } from '@/lib/societe-api';
 
@@ -9,9 +17,9 @@ interface DepartmentTableProps {
   societes: Societe[];
   onEdit: (departement: Departement) => void;
   onDelete: (id: number) => void;
-  sortField: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation';
+  sortField: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation' | 'nombre_chauffeurs';
   sortOrder: 'asc' | 'desc';
-  onSort: (field: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation') => void;
+  onSort: (field: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation' | 'nombre_chauffeurs') => void;
 }
 
 export default function DepartmentTable({
@@ -27,7 +35,11 @@ export default function DepartmentTable({
     return societes.find((s) => s.id === societeId)?.nom || 'N/A';
   };
 
-  const SortIcon = ({ field }: { field: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation' }) => {
+  const SortIcon = ({
+    field,
+  }: {
+    field: 'numero' | 'nom' | 'nombre_circuits' | 'date_creation' | 'nombre_chauffeurs';
+  }) => {
     if (sortField !== field) return <ArrowUp size={14} className="text-slate-300" />;
     return sortOrder === 'asc' ? (
       <ArrowUp size={14} className="text-blue-600" />
@@ -36,12 +48,22 @@ export default function DepartmentTable({
     );
   };
 
-  // ✅ Fonction pour obtenir le nombre de circuits de manière sécurisée
+  // ✅ Nombre de circuits (sécurisé)
   const getNombreCircuits = (dept: Departement): number => {
     const value = dept.nombre_circuits;
     if (value == null || isNaN(value)) {
       console.warn(`⚠️ Nombre circuits invalide pour ${dept.numero}:`, value);
-      return 1; // Valeur par défaut
+      return 1;
+    }
+    return value;
+  };
+
+  // ✅ Nombre de chauffeurs (sécurisé)
+  const getNombreChauffeurs = (dept: Departement): number => {
+    const value = dept.nombre_chauffeurs;
+    if (value == null || isNaN(value)) {
+      console.warn(`⚠️ Nombre chauffeurs invalide pour ${dept.numero}:`, value);
+      return 0;
     }
     return value;
   };
@@ -89,6 +111,16 @@ export default function DepartmentTable({
                   <SortIcon field="nombre_circuits" />
                 </div>
               </th>
+              {/* 🔥 Nouvelle colonne Chauffeurs */}
+              <th
+                onClick={() => onSort('nombre_chauffeurs')}
+                className="px-6 py-4 text-center text-sm font-semibold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Chauffeurs
+                  <SortIcon field="nombre_chauffeurs" />
+                </div>
+              </th>
               <th
                 onClick={() => onSort('date_creation')}
                 className="px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -111,7 +143,8 @@ export default function DepartmentTable({
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {departements.map((dept) => {
               const nombreCircuits = getNombreCircuits(dept);
-              
+              const nombreChauffeurs = getNombreChauffeurs(dept);
+
               return (
                 <tr
                   key={dept.id}
@@ -131,7 +164,9 @@ export default function DepartmentTable({
 
                   {/* Nom */}
                   <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900 dark:text-white">{dept.nom}</div>
+                    <div className="font-medium text-slate-900 dark:text-white">
+                      {dept.nom}
+                    </div>
                   </td>
 
                   {/* Région */}
@@ -149,12 +184,23 @@ export default function DepartmentTable({
                     {getSocieteNom(dept.societe)}
                   </td>
 
-                  {/* Nombre de circuits - SÉCURISÉ */}
+                  {/* Nombre de circuits */}
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <div className="px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900">
                         <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
                           {nombreCircuits}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Nombre de chauffeurs */}
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center">
+                      <div className="px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900">
+                        <span className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                          {nombreChauffeurs}
                         </span>
                       </div>
                     </div>
@@ -170,14 +216,20 @@ export default function DepartmentTable({
                     <div className="flex justify-center">
                       {dept.actif ? (
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900">
-                          <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
+                          <CheckCircle
+                            size={16}
+                            className="text-green-600 dark:text-green-400"
+                          />
                           <span className="text-sm font-medium text-green-700 dark:text-green-300">
                             Actif
                           </span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900">
-                          <XCircle size={16} className="text-red-600 dark:text-red-400" />
+                          <XCircle
+                            size={16}
+                            className="text-red-600 dark:text-red-400"
+                          />
                           <span className="text-sm font-medium text-red-700 dark:text-red-300">
                             Inactif
                           </span>
@@ -189,7 +241,6 @@ export default function DepartmentTable({
                   {/* Actions */}
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {/* Bouton Modifier */}
                       <button
                         onClick={() => onEdit(dept)}
                         className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 transition-colors"
@@ -197,8 +248,6 @@ export default function DepartmentTable({
                       >
                         <Edit2 size={18} />
                       </button>
-
-                      {/* Bouton Supprimer */}
                       <button
                         onClick={() => onDelete(dept.id)}
                         className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 transition-colors"

@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Mail, Phone, MapPin, Network, Users } from 'lucide-react';
-
+import {
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Phone,
+  MapPin,
+  Network,
+  Users,
+} from 'lucide-react';
 
 interface Department {
   id: number;
@@ -13,6 +20,7 @@ interface Department {
   region: string;
   cheflieu: string;
   circuits_count: number;
+  chauffeurs_count?: number; // nouveau
 }
 
 interface HierarchyNode {
@@ -21,7 +29,7 @@ interface HierarchyNode {
   prenom: string;
   gradenom: string;
   poste: string;
-  responsable_direct_nom: string
+  responsable_direct_nom: string;
   mail: string;
   phone: string;
   photo: string | null;
@@ -30,6 +38,7 @@ interface HierarchyNode {
   statut: string;
   departements: Department[];
   totalcircuits: number;
+  totalchauffeurs?: number; // nouveau
   children: HierarchyNode[];
 }
 
@@ -40,7 +49,9 @@ interface ApiResponse {
 }
 
 const getInitials = (nom: string, prenom: string): string => {
-  const n = (prenom && prenom[0] ? prenom[0] : '') + (nom && nom[0] ? nom[0] : '');
+  const n =
+    (prenom && prenom[0] ? prenom[0] : '') +
+    (nom && nom[0] ? nom[0] : '');
   return n.toUpperCase().slice(0, 2);
 };
 
@@ -65,7 +76,9 @@ export default function OrganigrammeDetailPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(
+    new Set(),
+  );
 
   useEffect(() => {
     const fetchHierarchy = async () => {
@@ -75,7 +88,9 @@ export default function OrganigrammeDetailPage() {
 
         const token = localStorage.getItem('access_token');
         if (!token) {
-          throw new Error('Token non trouvÃ©. Veuillez vous connecter.');
+          throw new Error(
+            'Token non trouvé. Veuillez vous connecter.',
+          );
         }
 
         const response = await fetch(
@@ -83,22 +98,23 @@ export default function OrganigrammeDetailPage() {
           {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
-              'Accept': 'application/json',
+              Accept: 'application/json',
             },
             credentials: 'include',
-          }
+          },
         );
 
         if (!response.ok) {
-          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+          throw new Error(
+            `Erreur ${response.status}: ${response.statusText}`,
+          );
         }
 
         const responseData: ApiResponse = await response.json();
         setData(responseData);
 
-        // Expand all nodes by default
         const allNodeIds = new Set<number>();
         const collectIds = (nodes: HierarchyNode[]) => {
           nodes.forEach((node) => {
@@ -135,38 +151,39 @@ export default function OrganigrammeDetailPage() {
     });
   };
 
-  const renderNode = (node: HierarchyNode, depth: number = 0): JSX.Element => {
+  const renderNode = (
+    node: HierarchyNode,
+    depth: number = 0,
+  ): JSX.Element => {
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children.length > 0;
-    const hasDepartments = node.departements && node.departements.length > 0;
+    const hasDepartments =
+      node.departements && node.departements.length > 0;
     const avatarColor = getAvatarColor(node.id);
     const initials = getInitials(node.nom, node.prenom);
-    console.log('Department data:', node.departements);
+    const totalChauffeurs = node.totalchauffeurs ?? 0;
 
     return (
       <div key={node.id} className="mb-6">
-        {/* Connecteur vertical depuis le parent */}
         {depth > 0 && (
           <div className="flex items-start">
             <div className="w-8 flex justify-center relative">
-              <div className="absolute top-0 w-0.5 h-4 bg-slate-300 dark:bg-slate-600"></div>
-              <div className="absolute top-4 w-4 h-0.5 bg-slate-300 dark:bg-slate-600"></div>
+              <div className="absolute top-0 w-0.5 h-4 bg-slate-300 dark:bg-slate-600" />
+              <div className="absolute top-4 w-4 h-0.5 bg-slate-300 dark:bg-slate-600" />
             </div>
 
-            {/* Carte du salariÃ© */}
             <div className="flex-1">
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="flex">
-                  {/* Avatar */}
                   <div
                     className={`bg-gradient-to-br ${avatarColor} w-24 h-24 flex items-center justify-center flex-shrink-0`}
                   >
-                    <span className="text-2xl font-bold text-white">{initials}</span>
+                    <span className="text-2xl font-bold text-white">
+                      {initials}
+                    </span>
                   </div>
 
-                  {/* Contenu */}
                   <div className="flex-1 p-4">
-                    {/* En-tÃªte */}
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -178,7 +195,6 @@ export default function OrganigrammeDetailPage() {
                       </div>
                     </div>
 
-                    {/* DÃ©tails */}
                     <div className="mt-3 space-y-2">
                       {node.poste && node.poste !== 'N/A' && (
                         <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -188,7 +204,10 @@ export default function OrganigrammeDetailPage() {
                       {node.mail && (
                         <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                           <Mail size={14} />
-                          <a href={`mailto:${node.mail}`} className="hover:underline">
+                          <a
+                            href={`mailto:${node.mail}`}
+                            className="hover:underline"
+                          >
                             {node.mail}
                           </a>
                         </div>
@@ -200,33 +219,51 @@ export default function OrganigrammeDetailPage() {
                         </div>
                       )}
                     </div>
+
                     {node.extension_3cx && (
-  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-    <Phone size={14} />
-    Poste 3CX: {node.extension_3cx}
-  </div>
-)}
-
-{node.responsable_direct_nom && (
-  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-    <Users size={14} />
-    Responsable: {node.responsable_direct_nom}
-  </div>
-)}
-
-                    {/* Circuits count */}
-                    {node.totalcircuits > 0 && (
-                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-2">
-                          <Network size={16} className="text-orange-500" />
-                          <span className="font-semibold text-orange-600 dark:text-orange-400">
-                            {node.totalcircuits} circuit{node.totalcircuits !== 1 ? 's' : ''}
-                          </span>
-                        </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                        <Phone size={14} />
+                        Poste 3CX: {node.extension_3cx}
                       </div>
                     )}
 
-                    {/* Statut */}
+                    {node.responsable_direct_nom && (
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                        <Users size={14} />
+                        Responsable: {node.responsable_direct_nom}
+                      </div>
+                    )}
+
+                    {(node.totalcircuits > 0 || totalChauffeurs > 0) && (
+                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                        {node.totalcircuits > 0 && (
+                          <div className="flex items-center gap-2">
+                            <Network
+                              size={16}
+                              className="text-orange-500"
+                            />
+                            <span className="font-semibold text-orange-600 dark:text-orange-400 text-xs">
+                              {node.totalcircuits} circuit
+                              {node.totalcircuits !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+
+                        {totalChauffeurs > 0 && (
+                          <div className="flex items-center gap-2">
+                            <Users
+                              size={16}
+                              className="text-purple-500"
+                            />
+                            <span className="font-semibold text-purple-700 dark:text-purple-300 text-xs">
+                              {totalChauffeurs} chauffeur
+                              {totalChauffeurs !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="mt-3">
                       <span className="inline-block px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full text-xs font-semibold">
                         {node.statut.toUpperCase()}
@@ -234,63 +271,82 @@ export default function OrganigrammeDetailPage() {
                     </div>
                   </div>
 
-                  {/* Bouton toggle */}
                   {hasChildren && (
                     <button
                       onClick={() => toggleNode(node.id)}
                       className="ml-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition flex-shrink-0"
                     >
                       {isExpanded ? (
-                        <ChevronDown size={20} className="text-slate-600 dark:text-slate-400" />
+                        <ChevronDown
+                          size={20}
+                          className="text-slate-600 dark:text-slate-400"
+                        />
                       ) : (
-                        <ChevronRight size={20} className="text-slate-600 dark:text-slate-400" />
+                        <ChevronRight
+                          size={20}
+                          className="text-slate-600 dark:text-slate-400"
+                        />
                       )}
                     </button>
                   )}
                 </div>
 
-                {/* Nombre d'enfants */}
                 {hasChildren && (
                   <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    {node.children.length} collaborateur{node.children.length !== 1 ? 's' : ''}
+                    {node.children.length} collaborateur
+                    {node.children.length !== 1 ? 's' : ''}
                   </div>
                 )}
 
-                {/* DÃ©partements */}
                 {hasDepartments && (
                   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
-                      DÃ©partements ({node.departements.length})
+                      Départements ({node.departements.length})
                     </p>
                     <div className="space-y-2">
-                      {node.departements.map((dept) => (
-                        <div
-                          key={dept.id}
-                          className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2.5 border border-slate-200 dark:border-slate-600"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <p className="text-xs font-semibold text-slate-900 dark:text-white">
-                                {dept.nom}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <MapPin size={12} className="text-blue-600 dark:text-blue-400" />
-                                <span className="text-xs text-slate-600 dark:text-slate-400">
-                                  {dept.region || 'N/A'}
-                                </span>
+                      {node.departements.map((dept) => {
+                        const deptChauffeurs =
+                          dept.chauffeurs_count ?? 0;
+                        return (
+                          <div
+                            key={dept.id}
+                            className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2.5 border border-slate-200 dark:border-slate-600"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                                  {dept.nom}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <MapPin
+                                    size={12}
+                                    className="text-blue-600 dark:text-blue-400"
+                                  />
+                                  <span className="text-xs text-slate-600 dark:text-slate-400">
+                                    {dept.region || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-md">
+                                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+                                    {dept.circuits_count} circuit
+                                    {dept.circuits_count !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+
+                                <div className="bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-md">
+                                  <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                                    {deptChauffeurs} chauffeur
+                                    {deptChauffeurs !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-
-                            {/* Badge circuits (version enfant) */}
-                            <div className="bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-md">
-  <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
-    {dept.circuits_count} circuit{dept.circuits_count !== 1 ? 's' : ''}
-  </span>
-</div>
-
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -299,22 +355,19 @@ export default function OrganigrammeDetailPage() {
           </div>
         )}
 
-        {/* Racine sans connecteur parent */}
         {depth === 0 && (
           <>
-            {/* Carte du salariÃ© */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-shadow border-2 border-blue-300 dark:border-blue-700 overflow-hidden">
               <div className="flex flex-col lg:flex-row">
-                {/* Avatar */}
                 <div
                   className={`bg-gradient-to-br ${avatarColor} w-full lg:w-28 h-28 flex items-center justify-center flex-shrink-0`}
                 >
-                  <span className="text-3xl font-bold text-white">{initials}</span>
+                  <span className="text-3xl font-bold text-white">
+                    {initials}
+                  </span>
                 </div>
 
-                {/* Contenu */}
                 <div className="flex-1 p-5">
-                  {/* En-tÃªte */}
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -326,7 +379,6 @@ export default function OrganigrammeDetailPage() {
                     </div>
                   </div>
 
-                  {/* DÃ©tails */}
                   <div className="mt-3 space-y-2">
                     {node.poste && node.poste !== 'N/A' && (
                       <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -336,7 +388,10 @@ export default function OrganigrammeDetailPage() {
                     {node.mail && (
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                         <Mail size={16} />
-                        <a href={`mailto:${node.mail}`} className="hover:underline">
+                        <a
+                          href={`mailto:${node.mail}`}
+                          className="hover:underline"
+                        >
                           {node.mail}
                         </a>
                       </div>
@@ -348,33 +403,52 @@ export default function OrganigrammeDetailPage() {
                       </div>
                     )}
                   </div>
-                    {node.extension_3cx && (
-  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-    <Phone size={16} />
-    Poste 3CX: {node.extension_3cx}
-  </div>
-)}
 
-{node.responsable_direct_nom && (
-  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-    <Users size={16} />
-    Responsable: {node.responsable_direct_nom}
-  </div>
-)}
-
-                  {/* Circuits count */}
-                  {node.totalcircuits > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-                      <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg border border-orange-200 dark:border-orange-700">
-                        <Network size={20} className="text-orange-600 dark:text-orange-400" />
-                        <span className="font-bold text-orange-700 dark:text-orange-300">
-                          {node.totalcircuits} circuit{node.totalcircuits !== 1 ? 's' : ''} au total
-                        </span>
-                      </div>
+                  {node.extension_3cx && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Phone size={16} />
+                      Poste 3CX: {node.extension_3cx}
                     </div>
                   )}
 
-                  {/* Statut */}
+                  {node.responsable_direct_nom && (
+                    <div className="mt-1 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Users size={16} />
+                      Responsable: {node.responsable_direct_nom}
+                    </div>
+                  )}
+
+                  {(node.totalcircuits > 0 || totalChauffeurs > 0) && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600 space-y-2">
+                      {node.totalcircuits > 0 && (
+                        <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 px-4 py-2 rounded-lg border border-orange-200 dark:border-orange-700">
+                          <Network
+                            size={20}
+                            className="text-orange-600 dark:text-orange-400"
+                          />
+                          <span className="font-bold text-orange-700 dark:text-orange-300">
+                            {node.totalcircuits} circuit
+                            {node.totalcircuits !== 1 ? 's' : ''} au
+                            total
+                          </span>
+                        </div>
+                      )}
+
+                      {totalChauffeurs > 0 && (
+                        <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg border border-purple-200 dark:border-purple-700">
+                          <Users
+                            size={20}
+                            className="text-purple-600 dark:text-purple-400"
+                          />
+                          <span className="font-bold text-purple-700 dark:text-purple-300">
+                            {totalChauffeurs} chauffeur
+                            {totalChauffeurs !== 1 ? 's' : ''} au total
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="mt-4">
                     <span className="inline-block px-4 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full text-sm font-semibold">
                       {node.statut.toUpperCase()}
@@ -382,63 +456,84 @@ export default function OrganigrammeDetailPage() {
                   </div>
                 </div>
 
-                {/* Bouton toggle */}
                 {hasChildren && (
                   <button
                     onClick={() => toggleNode(node.id)}
                     className="ml-4 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition flex-shrink-0"
                   >
                     {isExpanded ? (
-                      <ChevronDown size={24} className="text-slate-600 dark:text-slate-400" />
+                      <ChevronDown
+                        size={24}
+                        className="text-slate-600 dark:text-slate-400"
+                      />
                     ) : (
-                      <ChevronRight size={24} className="text-slate-600 dark:text-slate-400" />
+                      <ChevronRight
+                        size={24}
+                        className="text-slate-600 dark:text-slate-400"
+                      />
                     )}
                   </button>
                 )}
               </div>
 
-              {/* Nombre d'enfants */}
               {hasChildren && (
                 <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                  {node.children.length} collaborateur{node.children.length !== 1 ? 's' : ''} directs
+                  {node.children.length} collaborateur
+                  {node.children.length !== 1 ? 's' : ''} directs
                 </div>
               )}
 
-              {/* DÃ©partements */}
               {hasDepartments && (
                 <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                    DÃ©partements ({node.departements.length})
+                    Départements ({node.departements.length})
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {node.departements.map((dept) => (
-                      <div
-                        key={dept.id}
-                        className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-slate-900 dark:text-white">
-                              {dept.nom}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <MapPin size={14} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                              <span className="text-sm text-slate-600 dark:text-slate-300">
-                                {dept.region || 'N/A'}
-                              </span>
+                    {node.departements.map((dept) => {
+                      const deptChauffeurs =
+                        dept.chauffeurs_count ?? 0;
+                      return (
+                        <div
+                          key={dept.id}
+                          className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-3 border border-slate-200 dark:border-slate-600"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <p className="font-semibold text-slate-900 dark:text-white">
+                                {dept.nom}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <MapPin
+                                  size={14}
+                                  className="text-blue-600 dark:text-blue-400 flex-shrink-0"
+                                />
+                                <span className="text-sm text-slate-600 dark:text-slate-300">
+                                  {dept.region || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="bg-orange-200 dark:bg-orange-900 px-3 py-1.5 rounded-md flex-shrink-0">
+                                <span className="text-sm font-bold text-orange-700 dark:text-orange-300">
+                                  {dept.circuits_count} circuit
+                                  {dept.circuits_count !== 1
+                                    ? 's'
+                                    : ''}
+                                </span>
+                              </div>
+
+                              <div className="bg-purple-200 dark:bg-purple-900 px-3 py-1.5 rounded-md flex-shrink-0">
+                                <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                                  {deptChauffeurs} chauffeur
+                                  {deptChauffeurs !== 1 ? 's' : ''}
+                                </span>
+                              </div>
                             </div>
                           </div>
-
-                          {/* Badge circuits (version racine) */}
-                          <div className="bg-orange-200 dark:bg-orange-900 px-3 py-1.5 rounded-md flex-shrink-0">
-  <span className="text-sm font-bold text-orange-700 dark:text-orange-300">
-    {dept.circuits_count} circuit{dept.circuits_count !== 1 ? 's' : ''}
-  </span>
-</div>
-
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -446,12 +541,13 @@ export default function OrganigrammeDetailPage() {
           </>
         )}
 
-        {/* Enfants */}
         {hasChildren && isExpanded && (
           <div className="mt-4 ml-8 relative">
-            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-600"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-600" />
             <div className="space-y-0">
-              {node.children.map((child) => renderNode(child, depth + 1))}
+              {node.children.map((child) =>
+                renderNode(child, depth + 1),
+              )}
             </div>
           </div>
         )}
@@ -463,9 +559,9 @@ export default function OrganigrammeDetailPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-400 text-lg">
-            Chargement de l'organigramme...
+            Chargement de l&apos;organigramme...
           </p>
         </div>
       </div>
@@ -476,7 +572,9 @@ export default function OrganigrammeDetailPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-red-600 dark:text-red-400 mb-6 text-lg">{error}</p>
+          <p className="text-red-600 dark:text-red-400 mb-6 text-lg">
+            {error}
+          </p>
           <Link
             href="/annuaires/organigrammes"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -491,7 +589,9 @@ export default function OrganigrammeDetailPage() {
   if (!data) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-slate-600 dark:text-slate-400 text-lg">Aucune donnÃ©e</p>
+        <p className="text-slate-600 dark:text-slate-400 text-lg">
+          Aucune donnée
+        </p>
       </div>
     );
   }
@@ -499,13 +599,12 @@ export default function OrganigrammeDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* En-tÃªte */}
         <div className="mb-12">
           <Link
             href="/annuaires/organigrammes"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 mb-6 font-semibold"
           >
-            â† Retour aux services
+            ← Retour aux services
           </Link>
 
           <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-lg border border-slate-200 dark:border-slate-700">
@@ -518,11 +617,10 @@ export default function OrganigrammeDetailPage() {
               </p>
             )}
 
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-6 mt-8">
               <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
                 <p className="text-slate-600 dark:text-slate-400 text-sm font-semibold">
-                  Nombre de salariÃ©s
+                  Nombre de salariés
                 </p>
                 <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mt-2">
                   {data.totalsalaries}
@@ -541,7 +639,6 @@ export default function OrganigrammeDetailPage() {
           </div>
         </div>
 
-        {/* Organigramme */}
         {data.hierarchy.length > 0 ? (
           <div className="space-y-8">
             {data.hierarchy.map((node) => renderNode(node))}
@@ -549,15 +646,14 @@ export default function OrganigrammeDetailPage() {
         ) : (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl p-8 text-center">
             <p className="text-yellow-800 dark:text-yellow-200 text-lg font-semibold">
-              Aucune racine trouvÃ©e. VÃ©rifiez les donnÃ©es du service.
+              Aucune racine trouvée. Vérifiez les données du service.
             </p>
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-16 text-center text-slate-500 dark:text-slate-400">
           <p className="text-sm">
-            Cliquez sur les flÃ¨ches pour afficher/masquer les collaborateurs
+            Cliquez sur les flèches pour afficher/masquer les collaborateurs
           </p>
         </div>
       </div>

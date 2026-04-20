@@ -43,18 +43,34 @@ class CircuitSerializer(serializers.ModelSerializer):
 class DepartementSerializer(serializers.ModelSerializer):
     circuits = CircuitSerializer(many=True, read_only=True)
     label_complet = serializers.SerializerMethodField()
-    
+
+    # Alias pour compatibilité front
+    circuits_count = serializers.IntegerField(source='nombre_circuits', read_only=True)
+    chauffeurs_count = serializers.IntegerField(source='nombre_chauffeurs', read_only=True)
+
     class Meta:
         model = Departement
         fields = [
-            'id', 'numero', 'nom', 'region', 'chef_lieu', 'societe',
-            'nombre_circuits', 'circuits', 'actif', 'date_creation', 'label_complet',
+            'id',
+            'numero',
+            'nom',
+            'region',
+            'chef_lieu',
+            'societe',
+            'nombre_circuits',
+            'circuits_count',
+            'circuits',
+            'nombre_chauffeurs',
+            'chauffeurs_count',
+            'actif',
+            'date_creation',
+            'label_complet',
         ]
         read_only_fields = ['date_creation']
-    
+
     def get_label_complet(self, obj):
-        """Retourne CODE - NOM - X circuits"""
-        return f"{obj.numero} - {obj.nom} - {obj.nombre_circuits} circuits"
+        """Retourne CODE - NOM - X circuits - Y chauffeurs"""
+        return f"{obj.numero} - {obj.nom} - {obj.nombre_circuits} circuits - {obj.nombre_chauffeurs} chauffeurs"
 
 # ============================================
 # SERIALIZER SERVICE
